@@ -16,7 +16,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final User _mockUser = User(
     id: 'user_123456',
     email: 'test@example.com',
-    name: 'Test User',
+    name: 'Muraad Shams',
     createdAt: DateTime.now().subtract(const Duration(days: 30)),
     wasteReduction: 2500, // 2.5 kg
     moneySaved: 3200, // $32
@@ -102,7 +102,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: Column(
                           children: [
                             const Text(
-                              'Your Impact',
+                              'Impact',
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,

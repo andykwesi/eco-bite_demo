@@ -67,6 +67,20 @@ class _RecipesListScreenState extends State<RecipesListScreen> {
         Ingredient(name: 'Salt', isOwned: true),
       ],
     ),
+    Recipe(
+      name: 'Ginger Sautéed Spinach',
+      imageUrl: 'https://images.unsplash.com/photo-1607472586893-edb57bdc0e39',
+      cookingTimeMinutes: 10,
+      servings: 4,
+      source: 'Barefoot Contessa',
+      ingredients: [
+        Ingredient(name: 'Spinach', isOwned: false),
+        Ingredient(name: 'Garlic', isOwned: true),
+        Ingredient(name: 'Olive Oil', isOwned: true),
+        Ingredient(name: 'Butter', isOwned: true),
+        Ingredient(name: 'Salt', isOwned: true),
+      ],
+    ),
   ];
 
   List<Recipe> get _filteredRecipes {

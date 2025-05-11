@@ -60,6 +60,13 @@ class _PantryScreenState extends State<PantryScreen> {
       quantity: 1,
       unit: 'pcs',
     ),
+    Ingredient(
+      name: 'Red Pepper',
+      isOwned: true,
+      expiryDate: DateTime.now().subtract(const Duration(days: 1)),
+      quantity: 1,
+      unit: 'pcs',
+    ),
   ];
 
   List<Ingredient> get _filteredIngredients {
