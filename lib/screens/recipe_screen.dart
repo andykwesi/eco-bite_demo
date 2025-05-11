@@ -37,7 +37,7 @@ class RecipeScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     const Text(
-                      'Get Cooking with muraad!',
+                      'Get Cooking!',
                       style: TextStyle(
                         fontSize: 40,
                         fontWeight: FontWeight.bold,
