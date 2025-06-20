@@ -10,6 +10,7 @@ class Recipe {
   final bool isFavorite;
   final String category;
   final bool isFast;
+  final List<String> instructions;
 
   Recipe({
     required this.name,
@@ -18,6 +19,7 @@ class Recipe {
     required this.cookingTimeMinutes,
     required this.servings,
     required this.source,
+    required this.instructions,
     this.isFavorite = false,
     this.category = 'Main',
     this.isFast = false,

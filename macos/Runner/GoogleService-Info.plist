@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>499078252124-8u0n9isrf0tl44lljecsj7smabdel1ma.apps.googleusercontent.com</string>
+	<string>499078252124-5im3q7okg4mjboo46insu2brh0j1rd0v.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.499078252124-8u0n9isrf0tl44lljecsj7smabdel1ma</string>
+	<string>com.googleusercontent.apps.499078252124-5im3q7okg4mjboo46insu2brh0j1rd0v</string>
 	<key>API_KEY</key>
 	<string>AIzaSyBr-CQ6R7N_j14KpCgpgGQwb_geTIlD--M</string>
 	<key>GCM_SENDER_ID</key>
@@ -13,7 +13,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.muraadshams.ecobite</string>
+	<string>com.example.ecobite</string>
 	<key>PROJECT_ID</key>
 	<string>ecobite-app</string>
 	<key>STORAGE_BUCKET</key>
@@ -29,6 +29,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:499078252124:ios:49f86b72ae361e84694899</string>
+	<string>1:499078252124:ios:f7ba01367ad28dc8694899</string>
 </dict>
 </plist>

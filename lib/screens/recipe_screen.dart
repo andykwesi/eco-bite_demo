@@ -3,27 +3,33 @@ import '../models/ingredient.dart';
 import '../models/recipe.dart';
 import '../widgets/ingredient_list_item.dart';
 
-class RecipeScreen extends StatelessWidget {
-  const RecipeScreen({super.key});
+class RecipeScreen extends StatefulWidget {
+  final Recipe recipe;
+  const RecipeScreen({super.key, required this.recipe});
+
+  @override
+  State<RecipeScreen> createState() => _RecipeScreenState();
+}
+
+class _RecipeScreenState extends State<RecipeScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Sample recipe data
-    final recipe = Recipe(
-      name: 'Garlic Butter Salmon',
-      imageUrl: 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2',
-      cookingTimeMinutes: 8,
-      servings: 4,
-      source: 'Recipe Tin Eats',
-      isFast: true,
-      ingredients: [
-        Ingredient(name: 'Butter', isOwned: true),
-        Ingredient(name: 'Garlic', isOwned: true),
-        Ingredient(name: 'Olive Oil', isOwned: true),
-        Ingredient(name: 'Lemon Juice'),
-        Ingredient(name: 'Parsley'),
-      ],
-    );
+    final recipe = widget.recipe;
 
     return Scaffold(
       backgroundColor: const Color(0xFF97B380),
@@ -76,16 +82,21 @@ class RecipeScreen extends StatelessWidget {
                           Positioned(
                             top: 10,
                             left: 10,
-                            child: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.green.withOpacity(0.7),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.arrow_back,
-                                color: Colors.white,
-                                size: 20,
+                            child: GestureDetector(
+                              onTap: () {
+                                Navigator.of(context).pop();
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.withOpacity(0.7),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.arrow_back,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
                               ),
                             ),
                           ),
@@ -97,7 +108,9 @@ class RecipeScreen extends StatelessWidget {
                                 Icons.favorite_border,
                                 color: Colors.white,
                               ),
-                              onPressed: () {},
+                              onPressed: () {
+                                //go back to previous screen
+                              },
                             ),
                           ),
                           Positioned(
@@ -178,93 +191,203 @@ class RecipeScreen extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
-                                    'Ingredients',
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            const Text(
-                                              'Owned',
-                                              style: TextStyle(
-                                                fontSize: 18,
-                                                color: Colors.green,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 8),
-                                            ...recipe.ingredients
-                                                .where(
-                                                  (ingredient) =>
-                                                      ingredient.isOwned,
-                                                )
-                                                .map(
-                                                  (ingredient) => Padding(
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                          vertical: 4,
-                                                        ),
-                                                    child: Text(
-                                                      ingredient.name,
-                                                      style: const TextStyle(
-                                                        fontSize: 16,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                )
-                                                .toList(),
-                                          ],
-                                        ),
-                                      ),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            const Text(
-                                              'Unowned',
-                                              style: TextStyle(
-                                                fontSize: 18,
-                                                color: Colors.redAccent,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 8),
-                                            ...recipe.ingredients
-                                                .where(
-                                                  (ingredient) =>
-                                                      !ingredient.isOwned,
-                                                )
-                                                .map(
-                                                  (ingredient) => Padding(
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                          vertical: 4,
-                                                        ),
-                                                    child: Text(
-                                                      ingredient.name,
-                                                      style: const TextStyle(
-                                                        fontSize: 16,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                )
-                                                .toList(),
-                                          ],
-                                        ),
-                                      ),
+                                  TabBar(
+                                    controller: _tabController,
+                                    tabs: const [
+                                      Tab(text: 'Ingredients'),
+                                      Tab(text: 'Instructions'),
                                     ],
+                                    labelColor: Colors.green,
+                                    unselectedLabelColor: Colors.grey,
+                                    indicatorColor: Colors.green,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  SizedBox(
+                                    height: 300,
+                                    child: TabBarView(
+                                      controller: _tabController,
+                                      children: [
+                                        // Ingredients Tab
+                                        SingleChildScrollView(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Expanded(
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        const Text(
+                                                          'Owned',
+                                                          style: TextStyle(
+                                                            fontSize: 18,
+                                                            color: Colors.green,
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                          ),
+                                                        ),
+                                                        const SizedBox(
+                                                          height: 8,
+                                                        ),
+                                                        ...recipe.ingredients
+                                                            .where(
+                                                              (ingredient) =>
+                                                                  ingredient
+                                                                      .isOwned,
+                                                            )
+                                                            .map(
+                                                              (
+                                                                ingredient,
+                                                              ) => Padding(
+                                                                padding:
+                                                                    const EdgeInsets.symmetric(
+                                                                      vertical:
+                                                                          4,
+                                                                    ),
+                                                                child: Text(
+                                                                  ingredient
+                                                                      .name,
+                                                                  style:
+                                                                      const TextStyle(
+                                                                        fontSize:
+                                                                            16,
+                                                                      ),
+                                                                ),
+                                                              ),
+                                                            )
+                                                            .toList(),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  Expanded(
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        const Text(
+                                                          'Unowned',
+                                                          style: TextStyle(
+                                                            fontSize: 18,
+                                                            color:
+                                                                Colors
+                                                                    .redAccent,
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                          ),
+                                                        ),
+                                                        const SizedBox(
+                                                          height: 8,
+                                                        ),
+                                                        ...recipe.ingredients
+                                                            .where(
+                                                              (ingredient) =>
+                                                                  !ingredient
+                                                                      .isOwned,
+                                                            )
+                                                            .map(
+                                                              (
+                                                                ingredient,
+                                                              ) => Padding(
+                                                                padding:
+                                                                    const EdgeInsets.symmetric(
+                                                                      vertical:
+                                                                          4,
+                                                                    ),
+                                                                child: Text(
+                                                                  ingredient
+                                                                      .name,
+                                                                  style:
+                                                                      const TextStyle(
+                                                                        fontSize:
+                                                                            16,
+                                                                      ),
+                                                                ),
+                                                              ),
+                                                            )
+                                                            .toList(),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        // Instructions Tab
+                                        SingleChildScrollView(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              ...recipe.instructions.asMap().entries.map((
+                                                entry,
+                                              ) {
+                                                final index = entry.key;
+                                                final instruction = entry.value;
+                                                return Padding(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        vertical: 8.0,
+                                                      ),
+                                                  child: Row(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Container(
+                                                        width: 24,
+                                                        height: 24,
+                                                        margin:
+                                                            const EdgeInsets.only(
+                                                              right: 8,
+                                                            ),
+                                                        decoration:
+                                                            const BoxDecoration(
+                                                              color:
+                                                                  Colors.green,
+                                                              shape:
+                                                                  BoxShape
+                                                                      .circle,
+                                                            ),
+                                                        child: Center(
+                                                          child: Text(
+                                                            '${index + 1}',
+                                                            style:
+                                                                const TextStyle(
+                                                                  color:
+                                                                      Colors
+                                                                          .white,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      Expanded(
+                                                        child: Text(
+                                                          instruction,
+                                                          style:
+                                                              const TextStyle(
+                                                                fontSize: 16,
+                                                              ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                );
+                                              }).toList(),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ],
                               ),

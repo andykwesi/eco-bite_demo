@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/ingredient.dart';
 import '../models/recipe.dart';
 import '../widgets/recipe_card.dart';
+import 'recipe_screen.dart';
 
 class RecipesListScreen extends StatefulWidget {
   const RecipesListScreen({super.key});
@@ -27,6 +28,12 @@ class _RecipesListScreenState extends State<RecipesListScreen> {
         Ingredient(name: 'Breadcrumbs', isOwned: true),
         Ingredient(name: 'Garlic', isOwned: true),
       ],
+      instructions: [
+        'Preheat oven to 200°C/390°F.',
+        'Mix parmesan, breadcrumbs, and garlic.',
+        'Coat chicken in mixture and bake for 25-30 minutes.',
+        'Serve hot.',
+      ],
     ),
     Recipe(
       name: 'Crispy Skin Salmon',
@@ -40,6 +47,12 @@ class _RecipesListScreenState extends State<RecipesListScreen> {
         Ingredient(name: 'Salt', isOwned: true),
         Ingredient(name: 'Pepper', isOwned: true),
       ],
+      instructions: [
+        'Pat salmon dry and season with salt and pepper.',
+        'Heat oil in pan and cook salmon skin-side down for 5-6 minutes.',
+        'Flip and cook for 1-2 minutes.',
+        'Serve immediately.',
+      ],
     ),
     Recipe(
       name: 'Crostini',
@@ -51,6 +64,11 @@ class _RecipesListScreenState extends State<RecipesListScreen> {
         Ingredient(name: 'Baguette', isOwned: false),
         Ingredient(name: 'Olive Oil', isOwned: true),
         Ingredient(name: 'Garlic', isOwned: true),
+      ],
+      instructions: [
+        'Slice baguette and brush with olive oil.',
+        'Toast in oven until golden.',
+        'Rub with garlic and serve.',
       ],
     ),
     Recipe(
@@ -66,6 +84,12 @@ class _RecipesListScreenState extends State<RecipesListScreen> {
         Ingredient(name: 'Butter', isOwned: true),
         Ingredient(name: 'Salt', isOwned: true),
       ],
+      instructions: [
+        'Heat oil and butter in a pan.',
+        'Add garlic and sauté for 1 minute.',
+        'Add spinach and cook until wilted.',
+        'Season with salt and serve.',
+      ],
     ),
     Recipe(
       name: 'Ginger Sautéed Spinach',
@@ -79,6 +103,12 @@ class _RecipesListScreenState extends State<RecipesListScreen> {
         Ingredient(name: 'Olive Oil', isOwned: true),
         Ingredient(name: 'Butter', isOwned: true),
         Ingredient(name: 'Salt', isOwned: true),
+      ],
+      instructions: [
+        'Heat oil and butter in a pan.',
+        'Add garlic and ginger, sauté for 1 minute.',
+        'Add spinach and cook until wilted.',
+        'Season with salt and serve.',
       ],
     ),
   ];
@@ -227,7 +257,16 @@ class _RecipesListScreenState extends State<RecipesListScreen> {
                                         child: RecipeCard(
                                           recipe: cookableRecipes[index],
                                           onTap: () {
-                                            // Navigate to recipe details
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder:
+                                                    (context) => RecipeScreen(
+                                                      recipe:
+                                                          cookableRecipes[index],
+                                                    ),
+                                              ),
+                                            );
                                           },
                                           onFavorite: () {
                                             // Toggle favorite
@@ -265,7 +304,16 @@ class _RecipesListScreenState extends State<RecipesListScreen> {
                                         child: RecipeCard(
                                           recipe: nearlyCookableRecipes[index],
                                           onTap: () {
-                                            // Navigate to recipe details
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder:
+                                                    (context) => RecipeScreen(
+                                                      recipe:
+                                                          nearlyCookableRecipes[index],
+                                                    ),
+                                              ),
+                                            );
                                           },
                                           onFavorite: () {
                                             // Toggle favorite

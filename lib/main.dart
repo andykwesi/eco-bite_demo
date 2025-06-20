@@ -1,12 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'services/auth_service.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
-import 'services/auth_service.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    }
+  } catch (e) {
+    if (e is FirebaseException && e.code == 'duplicate-app') {
+      // Already initialized, ignore
+    } else {
+      rethrow;
+    }
+  }
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  AuthService().init();
   runApp(const EcoBiteApp());
 }
 

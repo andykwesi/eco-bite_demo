@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
+import 'package:firebase_core/firebase_core.dart';
 import '../models/user.dart';
 
 class AuthService {
@@ -7,59 +9,72 @@ class AuthService {
   factory AuthService() => _instance;
   AuthService._internal();
 
-  // In a real app, this would connect to Firebase Auth or another backend
+  final fb_auth.FirebaseAuth _firebaseAuth = fb_auth.FirebaseAuth.instance;
   User? _currentUser;
   final _authStateController = StreamController<User?>.broadcast();
 
   Stream<User?> get authStateChanges => _authStateController.stream;
   User? get currentUser => _currentUser;
 
-  // Mock login function
+  // Listen to Firebase auth state changes
+  void init() {
+    _firebaseAuth.authStateChanges().listen((fbUser) {
+      if (fbUser != null) {
+        _currentUser = User(
+          id: fbUser.uid,
+          email: fbUser.email ?? '',
+          name: fbUser.displayName ?? fbUser.email?.split('@').first ?? '',
+          createdAt: fbUser.metadata.creationTime ?? DateTime.now(),
+        );
+      } else {
+        _currentUser = null;
+      }
+      _authStateController.add(_currentUser);
+    });
+  }
+
+  // Login with Firebase
   Future<User> signInWithEmailAndPassword(String email, String password) async {
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 1));
-
-    if (password.length < 6) {
-      throw Exception('Invalid password. Must be at least 6 characters.');
-    }
-
-    _currentUser = User(
-      id: 'user_${DateTime.now().millisecondsSinceEpoch}',
+    final credential = await _firebaseAuth.signInWithEmailAndPassword(
       email: email,
-      name: email.split('@').first,
-      createdAt: DateTime.now(),
+      password: password,
     );
-
+    final fbUser = credential.user!;
+    _currentUser = User(
+      id: fbUser.uid,
+      email: fbUser.email ?? '',
+      name: fbUser.displayName ?? fbUser.email?.split('@').first ?? '',
+      createdAt: fbUser.metadata.creationTime ?? DateTime.now(),
+    );
     _authStateController.add(_currentUser);
     return _currentUser!;
   }
 
-  // Mock registration function
+  // Register with Firebase
   Future<User> createUserWithEmailAndPassword(
     String email,
     String password,
     String name,
   ) async {
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 1));
-
-    if (password.length < 6) {
-      throw Exception('Invalid password. Must be at least 6 characters.');
-    }
-
-    _currentUser = User(
-      id: 'user_${DateTime.now().millisecondsSinceEpoch}',
+    final credential = await _firebaseAuth.createUserWithEmailAndPassword(
       email: email,
-      name: name,
-      createdAt: DateTime.now(),
+      password: password,
     );
-
+    await credential.user!.updateDisplayName(name);
+    final fbUser = credential.user!;
+    _currentUser = User(
+      id: fbUser.uid,
+      email: fbUser.email ?? '',
+      name: name,
+      createdAt: fbUser.metadata.creationTime ?? DateTime.now(),
+    );
     _authStateController.add(_currentUser);
     return _currentUser!;
   }
 
   // Sign out
   Future<void> signOut() async {
+    await _firebaseAuth.signOut();
     _currentUser = null;
     _authStateController.add(null);
   }

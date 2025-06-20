@@ -15,7 +15,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // Mock user for development
   final User _mockUser = User(
     id: 'user_123456',
-    email: 'test@example.com',
+    email: 'test@gmail.com',
     name: 'Muraad Shams',
     createdAt: DateTime.now().subtract(const Duration(days: 30)),
     wasteReduction: 2500, // 2.5 kg

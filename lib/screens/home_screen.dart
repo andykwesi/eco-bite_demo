@@ -5,6 +5,19 @@ import '../screens/recipes_list_screen.dart';
 import '../screens/shopping_list_screen.dart';
 import '../screens/profile_screen.dart';
 
+class HomeTab extends StatelessWidget {
+  const HomeTab({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text(
+        'Welcome to EcoBite!',
+        style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+}
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -16,7 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
 
   final List<Widget> _screens = [
-    const RecipeScreen(),
+    const HomeTab(),
     const PantryScreen(),
     const RecipesListScreen(),
     const ShoppingListScreen(),

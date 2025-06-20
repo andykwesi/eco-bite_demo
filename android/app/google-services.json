@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "499078252124",
+    "project_id": "ecobite-app",
+    "storage_bucket": "ecobite-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:499078252124:android:7c8f8d661e41e07c694899",
+        "android_client_info": {
+          "package_name": "com.example.ecobite"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "499078252124-bfpjo770tkcbu034kfdfgvva3asql3tb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC5Mc33bl1JJF394gCjxcwFIASQCdNHY0M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "499078252124-bfpjo770tkcbu034kfdfgvva3asql3tb.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "499078252124-8u0n9isrf0tl44lljecsj7smabdel1ma.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.muraadshams.ecobite"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

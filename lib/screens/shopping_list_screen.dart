@@ -11,6 +11,8 @@ class ShoppingListScreen extends StatefulWidget {
 
 class _ShoppingListScreenState extends State<ShoppingListScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _ingredientNameController =
+      TextEditingController();
 
   // Sample shopping list data
   final List<Ingredient> _shoppingList = [
@@ -33,9 +35,52 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     }).toList();
   }
 
+  void _addIngredient() {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Add Ingredient'),
+            content: TextField(
+              controller: _ingredientNameController,
+              decoration: const InputDecoration(
+                hintText: 'Enter ingredient name',
+                labelText: 'Ingredient Name',
+              ),
+              autofocus: true,
+              textCapitalization: TextCapitalization.words,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  if (_ingredientNameController.text.isNotEmpty) {
+                    setState(() {
+                      _shoppingList.add(
+                        Ingredient(
+                          name: _ingredientNameController.text.trim(),
+                          isOwned: false,
+                        ),
+                      );
+                    });
+                    _ingredientNameController.clear();
+                    Navigator.pop(context);
+                  }
+                },
+                child: const Text('Add'),
+              ),
+            ],
+          ),
+    );
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
+    _ingredientNameController.dispose();
     super.dispose();
   }
 
@@ -137,9 +182,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             ElevatedButton.icon(
-                              onPressed: () {
-                                // Add ingredient to shopping list
-                              },
+                              onPressed: _addIngredient,
                               icon: const Icon(Icons.add),
                               label: const Text('Add Ingredient'),
                               style: ElevatedButton.styleFrom(
