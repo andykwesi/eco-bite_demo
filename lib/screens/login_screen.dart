@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../widgets/error_dialog.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,15 +13,16 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _nameController = TextEditingController(); // For signup
   final _authService = AuthService();
   bool _isLoading = false;
   bool _isLogin = true; // Toggle between login and signup
-  String? _errorMessage;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _nameController.dispose();
     super.dispose();
   }
 
@@ -29,7 +31,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() {
       _isLoading = true;
-      _errorMessage = null;
     });
 
     try {
@@ -42,17 +43,33 @@ class _LoginScreenState extends State<LoginScreen> {
         await _authService.createUserWithEmailAndPassword(
           _emailController.text.trim(),
           _passwordController.text,
-          _emailController.text.split('@').first, // Use email as default name
+          _nameController.text.trim().isNotEmpty
+              ? _nameController.text.trim()
+              : _emailController.text
+                  .split('@')
+                  .first, // Use email as fallback name
         );
       }
 
       if (mounted) {
         Navigator.of(context).pushReplacementNamed('/home');
       }
+    } on AuthException catch (e) {
+      if (mounted) {
+        DialogHelper.showErrorDialog(
+          context: context,
+          title: _isLogin ? 'Login Failed' : 'Sign Up Failed',
+          message: e.message,
+        );
+      }
     } catch (e) {
-      setState(() {
-        _errorMessage = e.toString();
-      });
+      if (mounted) {
+        DialogHelper.showErrorDialog(
+          context: context,
+          title: 'Error',
+          message: 'An unexpected error occurred. Please try again.',
+        );
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -151,6 +168,19 @@ class _LoginScreenState extends State<LoginScreen> {
                           },
                         ),
                         const SizedBox(height: 16),
+                        if (!_isLogin) ...[
+                          TextFormField(
+                            controller: _nameController,
+                            decoration: InputDecoration(
+                              labelText: 'Full Name (optional)',
+                              prefixIcon: const Icon(Icons.person),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
                         TextFormField(
                           controller: _passwordController,
                           decoration: InputDecoration(
@@ -165,22 +195,12 @@ class _LoginScreenState extends State<LoginScreen> {
                             if (value == null || value.isEmpty) {
                               return 'Please enter your password';
                             }
-                            if (value.length < 6) {
+                            if (!_isLogin && value.length < 6) {
                               return 'Password must be at least 6 characters';
                             }
                             return null;
                           },
                         ),
-                        if (_errorMessage != null) ...[
-                          const SizedBox(height: 16),
-                          Text(
-                            _errorMessage!,
-                            style: const TextStyle(
-                              color: Colors.red,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
                         const SizedBox(height: 24),
                         ElevatedButton(
                           onPressed: _isLoading ? null : _submitForm,
@@ -209,7 +229,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           onPressed: () {
                             setState(() {
                               _isLogin = !_isLogin;
-                              _errorMessage = null;
                             });
                           },
                           child: Text(

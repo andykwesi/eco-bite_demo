@@ -3,6 +3,54 @@ import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 import 'package:firebase_core/firebase_core.dart';
 import '../models/user.dart';
 
+// Custom auth exception for better error handling
+class AuthException implements Exception {
+  final String message;
+  final String code;
+
+  AuthException(this.code, this.message);
+
+  @override
+  String toString() => message;
+
+  // Helper to convert Firebase Auth error codes to user-friendly messages
+  static AuthException fromFirebaseError(fb_auth.FirebaseAuthException e) {
+    switch (e.code) {
+      case 'invalid-email':
+        return AuthException(e.code, 'The email address is invalid.');
+      case 'user-disabled':
+        return AuthException(e.code, 'This user has been disabled.');
+      case 'user-not-found':
+        return AuthException(e.code, 'No user found with this email.');
+      case 'wrong-password':
+        return AuthException(e.code, 'The password is incorrect.');
+      case 'email-already-in-use':
+        return AuthException(e.code, 'This email is already registered.');
+      case 'weak-password':
+        return AuthException(e.code, 'Password is too weak.');
+      case 'operation-not-allowed':
+        return AuthException(e.code, 'This operation is not allowed.');
+      case 'account-exists-with-different-credential':
+        return AuthException(
+          e.code,
+          'An account already exists with a different credential.',
+        );
+      case 'network-request-failed':
+        return AuthException(
+          e.code,
+          'Network error. Please check your connection.',
+        );
+      case 'too-many-requests':
+        return AuthException(
+          e.code,
+          'Too many requests. Please try again later.',
+        );
+      default:
+        return AuthException(e.code, e.message ?? 'An unknown error occurred.');
+    }
+  }
+}
+
 class AuthService {
   // Singleton pattern
   static final AuthService _instance = AuthService._internal();
@@ -11,43 +59,69 @@ class AuthService {
 
   final fb_auth.FirebaseAuth _firebaseAuth = fb_auth.FirebaseAuth.instance;
   User? _currentUser;
+
+  // Create controller with a default null value
   final _authStateController = StreamController<User?>.broadcast();
 
+  // Expose the stream
   Stream<User?> get authStateChanges => _authStateController.stream;
+
+  // Get the current user
   User? get currentUser => _currentUser;
+
+  // Flag to track if initialized
+  bool _isInitialized = false;
 
   // Listen to Firebase auth state changes
   void init() {
+    if (_isInitialized) return;
+    _isInitialized = true;
+
+    // Immediately emit the current auth state
+    _updateCurrentUser(_firebaseAuth.currentUser);
+
+    // Listen for future changes
     _firebaseAuth.authStateChanges().listen((fbUser) {
-      if (fbUser != null) {
-        _currentUser = User(
-          id: fbUser.uid,
-          email: fbUser.email ?? '',
-          name: fbUser.displayName ?? fbUser.email?.split('@').first ?? '',
-          createdAt: fbUser.metadata.creationTime ?? DateTime.now(),
-        );
-      } else {
-        _currentUser = null;
-      }
-      _authStateController.add(_currentUser);
+      _updateCurrentUser(fbUser);
     });
+  }
+
+  // Helper to update the current user and notify listeners
+  void _updateCurrentUser(fb_auth.User? fbUser) {
+    if (fbUser != null) {
+      _currentUser = User(
+        id: fbUser.uid,
+        email: fbUser.email ?? '',
+        name: fbUser.displayName ?? fbUser.email?.split('@').first ?? '',
+        createdAt: fbUser.metadata.creationTime ?? DateTime.now(),
+      );
+    } else {
+      _currentUser = null;
+    }
+
+    // Notify listeners
+    _authStateController.add(_currentUser);
   }
 
   // Login with Firebase
   Future<User> signInWithEmailAndPassword(String email, String password) async {
-    final credential = await _firebaseAuth.signInWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
-    final fbUser = credential.user!;
-    _currentUser = User(
-      id: fbUser.uid,
-      email: fbUser.email ?? '',
-      name: fbUser.displayName ?? fbUser.email?.split('@').first ?? '',
-      createdAt: fbUser.metadata.creationTime ?? DateTime.now(),
-    );
-    _authStateController.add(_currentUser);
-    return _currentUser!;
+    try {
+      final credential = await _firebaseAuth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      final fbUser = credential.user!;
+
+      _updateCurrentUser(fbUser);
+      return _currentUser!;
+    } on fb_auth.FirebaseAuthException catch (e) {
+      throw AuthException.fromFirebaseError(e);
+    } catch (e) {
+      throw AuthException(
+        'unknown',
+        'An unexpected error occurred: ${e.toString()}',
+      );
+    }
   }
 
   // Register with Firebase
@@ -56,27 +130,63 @@ class AuthService {
     String password,
     String name,
   ) async {
-    final credential = await _firebaseAuth.createUserWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
-    await credential.user!.updateDisplayName(name);
-    final fbUser = credential.user!;
-    _currentUser = User(
-      id: fbUser.uid,
-      email: fbUser.email ?? '',
-      name: name,
-      createdAt: fbUser.metadata.creationTime ?? DateTime.now(),
-    );
-    _authStateController.add(_currentUser);
-    return _currentUser!;
+    try {
+      final credential = await _firebaseAuth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      await credential.user!.updateDisplayName(name);
+
+      _updateCurrentUser(credential.user);
+      return _currentUser!;
+    } on fb_auth.FirebaseAuthException catch (e) {
+      throw AuthException.fromFirebaseError(e);
+    } catch (e) {
+      throw AuthException(
+        'unknown',
+        'An unexpected error occurred: ${e.toString()}',
+      );
+    }
   }
 
   // Sign out
   Future<void> signOut() async {
-    await _firebaseAuth.signOut();
-    _currentUser = null;
-    _authStateController.add(null);
+    try {
+      await _firebaseAuth.signOut();
+      _updateCurrentUser(null);
+    } on fb_auth.FirebaseAuthException catch (e) {
+      throw AuthException.fromFirebaseError(e);
+    } catch (e) {
+      throw AuthException(
+        'unknown',
+        'An unexpected error occurred during sign out: ${e.toString()}',
+      );
+    }
+  }
+
+  // Get current user
+  Future<User?> getCurrentUser() async {
+    final fbUser = _firebaseAuth.currentUser;
+    _updateCurrentUser(fbUser);
+    return _currentUser;
+  }
+
+  // Helper method to reload user data
+  Future<void> reloadUser() async {
+    try {
+      final fbUser = _firebaseAuth.currentUser;
+      if (fbUser != null) {
+        await fbUser.reload();
+        _updateCurrentUser(fbUser);
+      }
+    } on fb_auth.FirebaseAuthException catch (e) {
+      throw AuthException.fromFirebaseError(e);
+    } catch (e) {
+      throw AuthException(
+        'unknown',
+        'Failed to reload user data: ${e.toString()}',
+      );
+    }
   }
 
   void dispose() {

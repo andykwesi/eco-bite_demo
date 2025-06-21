@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'services/auth_service.dart';
+import 'models/user.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -35,9 +36,24 @@ class EcoBiteApp extends StatefulWidget {
 
 class _EcoBiteAppState extends State<EcoBiteApp> {
   final _authService = AuthService();
+  bool _isInitializing = true;
 
-  // Bypassing authentication for development
-  bool _bypassAuth = true;
+  @override
+  void initState() {
+    super.initState();
+    _checkAuthState();
+  }
+
+  Future<void> _checkAuthState() async {
+    // Short delay to show splash screen
+    await Future.delayed(const Duration(milliseconds: 1500));
+
+    if (mounted) {
+      setState(() {
+        _isInitializing = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,8 +72,28 @@ class _EcoBiteAppState extends State<EcoBiteApp> {
         '/home': (context) => const HomeScreen(),
         '/login': (context) => const LoginScreen(),
       },
-      // Go directly to home screen
-      home: _bypassAuth ? const LoginScreen() : const HomeScreen(),
+      home: _isInitializing ? const SplashScreen() : AuthStateRedirect(),
+    );
+  }
+}
+
+// Separate widget to handle auth state redirection
+class AuthStateRedirect extends StatelessWidget {
+  const AuthStateRedirect({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: AuthService().authStateChanges,
+      builder: (context, snapshot) {
+        // If we have a user, go to home screen
+        if (snapshot.hasData && snapshot.data != null) {
+          return const HomeScreen();
+        }
+
+        // If we don't have a user or there's an error, go to login screen
+        return const LoginScreen();
+      },
     );
   }
 }
