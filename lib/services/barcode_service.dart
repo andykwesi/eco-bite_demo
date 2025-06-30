@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import '../models/ingredient.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class BarcodeService {
   // Singleton pattern
@@ -29,23 +30,21 @@ class BarcodeService {
       'unit': 'pcs',
       'category': 'Dairy',
     },
-    '789123456789': {
-      'name': 'Organic Spinach',
-      'quantity': 200.0,
-      'unit': 'g',
-      'category': 'Produce',
-    },
   };
 
   // Mock scan function - in a real app, this would use the device camera
   Future<String?> scanBarcode() async {
+    // Request camera permission
+    final status = await Permission.camera.request();
+    if (!status.isGranted) {
+      // Optionally show a dialog or message to the user
+      return null;
+    }
     // Simulate scanning delay
     await Future.delayed(const Duration(seconds: 1));
-
     // Return a random barcode from the mock database
     final codes = _mockProductDatabase.keys.toList();
     if (codes.isEmpty) return null;
-
     return codes[DateTime.now().millisecond % codes.length];
   }
 
