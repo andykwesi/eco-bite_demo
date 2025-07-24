@@ -34,4 +34,38 @@ class Recipe {
         ingredients.where((ingredient) => ingredient.isOwned).length;
     return ownedCount >= ingredients.length * 0.7 && !isFullyCookable;
   }
+
+  factory Recipe.fromMap(Map<String, dynamic> map) {
+    return Recipe(
+      name: map['name'],
+      imageUrl: map['imageUrl'],
+      ingredients:
+          (map['ingredients'] as List<dynamic>?)
+              ?.map((e) => Ingredient.fromMap(Map<String, dynamic>.from(e)))
+              .toList() ??
+          [],
+      cookingTimeMinutes: map['cookingTimeMinutes'],
+      servings: map['servings'],
+      source: map['source'],
+      instructions: List<String>.from(map['instructions'] ?? []),
+      isFavorite: map['isFavorite'] ?? false,
+      category: map['category'] ?? 'Main',
+      isFast: map['isFast'] ?? false,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'name': name,
+      'imageUrl': imageUrl,
+      'ingredients': ingredients.map((e) => e.toMap()).toList(),
+      'cookingTimeMinutes': cookingTimeMinutes,
+      'servings': servings,
+      'source': source,
+      'instructions': instructions,
+      'isFavorite': isFavorite,
+      'category': category,
+      'isFast': isFast,
+    };
+  }
 }

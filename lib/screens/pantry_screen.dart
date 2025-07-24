@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/ingredient.dart';
 import '../widgets/ingredient_list_item.dart';
-import 'barcode_scanner_screen.dart';
+import '../services/firestore_service.dart';
+import '../widgets/error_dialog.dart';
 
 class PantryScreen extends StatefulWidget {
   const PantryScreen({super.key});
@@ -12,120 +13,72 @@ class PantryScreen extends StatefulWidget {
 
 class _PantryScreenState extends State<PantryScreen> {
   final TextEditingController _searchController = TextEditingController();
-  final List<Ingredient> _ingredients = [
-    Ingredient(
-      name: 'Butter',
-      isOwned: true,
-      expiryDate: DateTime.now().add(const Duration(days: 14)),
-      quantity: 250,
-      unit: 'g',
-    ),
-    Ingredient(
-      name: 'Dried Red Chillies',
-      isOwned: true,
-      expiryDate: DateTime.now().add(const Duration(days: 90)),
-    ),
-    Ingredient(
-      name: 'Gluten Free Tamari',
-      isOwned: true,
-      expiryDate: DateTime.now().add(const Duration(days: 180)),
-      quantity: 500,
-      unit: 'ml',
-    ),
-    Ingredient(
-      name: 'Olive Oil',
-      isOwned: true,
-      expiryDate: DateTime.now().add(const Duration(days: 365)),
-      quantity: 750,
-      unit: 'ml',
-    ),
-    Ingredient(
-      name: 'Taco Seasoning',
-      isOwned: true,
-      expiryDate: DateTime.now().add(const Duration(days: 120)),
-      quantity: 50,
-      unit: 'g',
-    ),
-    Ingredient(
-      name: 'Vegetable Stock',
-      isOwned: true,
-      expiryDate: DateTime.now().add(const Duration(days: 2)),
-      quantity: 1,
-      unit: 'L',
-    ),
-    Ingredient(
-      name: 'White Cabbage',
-      isOwned: true,
-      expiryDate: DateTime.now().subtract(const Duration(days: 1)),
-      quantity: 1,
-      unit: 'pcs',
-    ),
-    Ingredient(
-      name: 'Red Pepper',
-      isOwned: true,
-      expiryDate: DateTime.now().subtract(const Duration(days: 1)),
-      quantity: 1,
-      unit: 'pcs',
-    ),
-  ];
+  final FirestoreService _firestoreService = FirestoreService();
+
+  List<Ingredient> _ingredients = [];
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPantry();
+  }
+
+  Future<void> _fetchPantry() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final items = await _firestoreService.fetchPantry();
+      setState(() {
+        _ingredients = items;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Failed to load pantry.';
+        _isLoading = false;
+      });
+    }
+  }
 
   List<Ingredient> get _filteredIngredients {
     final query = _searchController.text.toLowerCase();
     if (query.isEmpty) return _ingredients;
-
     return _ingredients.where((ingredient) {
       return ingredient.name.toLowerCase().contains(query);
     }).toList();
   }
 
-  // Sort the ingredients with expiring ones first
-  List<Ingredient> get _sortedIngredients {
-    final sorted = List<Ingredient>.from(_filteredIngredients);
-    sorted.sort((a, b) {
-      // First, sort by expiry status (expired first, then expiring)
-      if (a.isExpired && !b.isExpired) return -1;
-      if (!a.isExpired && b.isExpired) return 1;
-      if (a.isExpiring && !b.isExpiring && !b.isExpired) return -1;
-      if (!a.isExpiring && !a.isExpired && b.isExpiring) return 1;
-
-      // Then sort by expiry date (soonest first)
-      if (a.expiryDate != null && b.expiryDate != null) {
-        return a.expiryDate!.compareTo(b.expiryDate!);
-      }
-
-      // Items without expiry dates go last
-      if (a.expiryDate == null && b.expiryDate != null) return 1;
-      if (a.expiryDate != null && b.expiryDate == null) return -1;
-
-      // If all else is equal, sort alphabetically
-      return a.name.compareTo(b.name);
-    });
-    return sorted;
-  }
-
-  Future<void> _scanBarcode() async {
-    final result = await Navigator.of(context).push<Ingredient>(
-      MaterialPageRoute(builder: (context) => const BarcodeScannerScreen()),
-    );
-
-    if (result != null) {
-      setState(() {
-        _ingredients.add(result);
-      });
-    }
-  }
-
-  void _addManually() {
-    // Show dialog to add ingredient manually
-    showDialog(
+  void _showAddIngredientSheet({Ingredient? ingredient, int? index}) {
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder:
-          (context) => _AddIngredientDialog(
-            onAdd: (ingredient) {
-              setState(() {
-                _ingredients.add(ingredient);
-              });
-            },
+          (context) => Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+              left: 24,
+              right: 24,
+              top: 24,
+            ),
+            child: _AddIngredientSheet(
+              onAdd: (newIngredient) {
+                setState(() {
+                  if (ingredient != null && index != null) {
+                    _ingredients[index] = newIngredient;
+                  } else {
+                    _ingredients.add(newIngredient);
+                  }
+                });
+              },
+              initial: ingredient,
+            ),
           ),
     );
   }
@@ -139,123 +92,147 @@ class _PantryScreenState extends State<PantryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF97B380),
+      backgroundColor: const Color(0xFFF8F8F8),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: const Text(
+          'Pantry',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+        ),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add, color: Color(0xFF4CAF50)),
+            onPressed: () => _showAddIngredientSheet(),
+            tooltip: 'Add Ingredient',
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const Text(
-                    'Your Pantry',
-                    style: TextStyle(
-                      fontSize: 40,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: Container(
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF2F2F2),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 12),
+                    const Icon(
+                      Icons.search,
+                      color: Color(0xFF8B8B8B),
+                      size: 22,
                     ),
-                  ),
-                  const Text(
-                    'Add Your Ingredients',
-                    style: TextStyle(
-                      fontSize: 24,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w300,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: const InputDecoration(
+                          hintText: 'Search pantry...',
+                          border: InputBorder.none,
+                          isDense: true,
+                        ),
+                        style: const TextStyle(fontSize: 16),
+                        onChanged: (value) {
+                          setState(() {});
+                        },
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
+            const SizedBox(height: 16),
             Expanded(
-              child: Container(
-                margin: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: TextField(
-                          controller: _searchController,
-                          decoration: InputDecoration(
-                            hintText: 'Search garlic...',
-                            prefixIcon: const Icon(Icons.search),
-                            filled: true,
-                            fillColor: Colors.grey.shade200,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(30),
-                              borderSide: BorderSide.none,
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 0,
-                              horizontal: 20,
-                            ),
-                          ),
-                          onChanged: (value) {
-                            setState(() {});
-                          },
+              child:
+                  _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : _error != null
+                      ? Center(
+                        child: Text(
+                          _error!,
+                          style: const TextStyle(color: Colors.red),
                         ),
-                      ),
-
-                      // Expiry alerts section
-                      if (_sortedIngredients.any(
-                        (i) => i.isExpired || i.isExpiring,
-                      ))
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.red.shade50,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.red.shade200),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.warning_amber,
-                                      color: Colors.red.shade700,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Expiring soon',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.red.shade700,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  '${_sortedIngredients.where((i) => i.isExpired).length} expired, ${_sortedIngredients.where((i) => i.isExpiring && !i.isExpired).length} expiring soon',
-                                  style: TextStyle(
-                                    color: Colors.red.shade700,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                      )
+                      : _filteredIngredients.isEmpty
+                      ? const Center(
+                        child: Text('No ingredients in your pantry.'),
+                      )
+                      : ListView.separated(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
                         ),
-
-                      Expanded(
-                        child: ListView.builder(
-                          itemCount: _sortedIngredients.length,
-                          itemBuilder: (context, index) {
-                            final ingredient = _sortedIngredients[index];
-                            return IngredientListItem(
+                        itemCount: _filteredIngredients.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          final ingredient = _filteredIngredients[index];
+                          return Dismissible(
+                            key: ValueKey(
+                              ingredient.name +
+                                  (ingredient.expiryDate?.toIso8601String() ??
+                                      ''),
+                            ),
+                            background: Container(
+                              alignment: Alignment.centerLeft,
+                              padding: const EdgeInsets.only(left: 24),
+                              color: Colors.blue.shade100,
+                              child: const Icon(Icons.edit, color: Colors.blue),
+                            ),
+                            secondaryBackground: Container(
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.only(right: 24),
+                              color: Colors.red.shade100,
+                              child: const Icon(
+                                Icons.delete,
+                                color: Colors.red,
+                              ),
+                            ),
+                            confirmDismiss: (direction) async {
+                              if (direction == DismissDirection.startToEnd) {
+                                // Edit
+                                _showAddIngredientSheet(
+                                  ingredient: ingredient,
+                                  index: index,
+                                );
+                                return false;
+                              } else if (direction ==
+                                  DismissDirection.endToStart) {
+                                // Delete
+                                final confirm = await showCustomConfirmDialog(
+                                  context: context,
+                                  title: 'Delete Ingredient',
+                                  message:
+                                      'Are you sure you want to delete this ingredient?',
+                                  confirmText: 'Delete',
+                                  cancelText: 'Cancel',
+                                  isDestructive: true,
+                                  icon: Icons.delete,
+                                );
+                                if (confirm == true) {
+                                  setState(() {
+                                    _ingredients.removeAt(index);
+                                  });
+                                  await showCustomInfoDialog(
+                                    context: context,
+                                    title: 'Deleted',
+                                    message: 'Ingredient deleted successfully.',
+                                    icon: Icons.check_circle,
+                                  );
+                                  return true;
+                                }
+                                return false;
+                              }
+                              return false;
+                            },
+                            child: _IngredientCard(
                               ingredient: ingredient,
                               onTap: () {
-                                // Show ingredient details
                                 showDialog(
                                   context: context,
                                   builder:
@@ -271,105 +248,10 @@ class _PantryScreenState extends State<PantryScreen> {
                                       ),
                                 );
                               },
-                            );
-                          },
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            PopupMenuButton<String>(
-                              onSelected: (value) {
-                                if (value == 'scan') {
-                                  _scanBarcode();
-                                } else if (value == 'manual') {
-                                  _addManually();
-                                }
-                              },
-                              itemBuilder:
-                                  (context) => [
-                                    const PopupMenuItem(
-                                      value: 'scan',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.qr_code_scanner),
-                                          SizedBox(width: 8),
-                                          Text('Scan Barcode'),
-                                        ],
-                                      ),
-                                    ),
-                                    const PopupMenuItem(
-                                      value: 'manual',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.edit),
-                                          SizedBox(width: 8),
-                                          Text('Add Manually'),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                              child: ElevatedButton.icon(
-                                onPressed: null,
-                                icon: const Icon(Icons.add),
-                                label: const Text('Add Ingredient'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.green,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 24,
-                                    vertical: 12,
-                                  ),
-                                ),
-                              ),
                             ),
-                            IconButton(
-                              onPressed: () {
-                                // Show sorting options
-                                showDialog(
-                                  context: context,
-                                  builder:
-                                      (context) => AlertDialog(
-                                        title: const Text('Sort By'),
-                                        content: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            ListTile(
-                                              title: const Text('Expiry Date'),
-                                              onTap: () {
-                                                Navigator.of(context).pop();
-                                                // Already sorted by expiry by default
-                                              },
-                                            ),
-                                            ListTile(
-                                              title: const Text('Name'),
-                                              onTap: () {
-                                                Navigator.of(context).pop();
-                                                setState(() {
-                                                  _ingredients.sort(
-                                                    (a, b) => a.name.compareTo(
-                                                      b.name,
-                                                    ),
-                                                  );
-                                                });
-                                              },
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                );
-                              },
-                              icon: const Icon(Icons.sort),
-                            ),
-                          ],
-                        ),
+                          );
+                        },
                       ),
-                    ],
-                  ),
-                ),
-              ),
             ),
           ],
         ),
@@ -378,31 +260,141 @@ class _PantryScreenState extends State<PantryScreen> {
   }
 }
 
-class _AddIngredientDialog extends StatefulWidget {
-  final Function(Ingredient) onAdd;
-
-  const _AddIngredientDialog({required this.onAdd});
+class _IngredientCard extends StatelessWidget {
+  final Ingredient ingredient;
+  final VoidCallback onTap;
+  const _IngredientCard({required this.ingredient, required this.onTap});
 
   @override
-  State<_AddIngredientDialog> createState() => _AddIngredientDialogState();
+  Widget build(BuildContext context) {
+    Color statusColor;
+    if (ingredient.isExpired) {
+      statusColor = Colors.red;
+    } else if (ingredient.isExpiring) {
+      statusColor = Colors.orange;
+    } else {
+      statusColor = const Color(0xFF4CAF50);
+    }
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Container(
+                width: 12,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: statusColor,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      ingredient.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        if (ingredient.quantity != null)
+                          Text(
+                            '${ingredient.quantity} ',
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        if (ingredient.unit != null)
+                          Text(
+                            ingredient.unit!,
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        if (ingredient.quantity != null ||
+                            ingredient.unit != null)
+                          const SizedBox(width: 8),
+                        const Icon(
+                          Icons.calendar_today,
+                          size: 14,
+                          color: Color(0xFF8B8B8B),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          ingredient.expiryDate != null
+                              ? '${ingredient.expiryDate!.year}-${ingredient.expiryDate!.month.toString().padLeft(2, '0')}-${ingredient.expiryDate!.day.toString().padLeft(2, '0')}'
+                              : 'No expiry',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF8B8B8B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: Color(0xFF8B8B8B)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-class _AddIngredientDialogState extends State<_AddIngredientDialog> {
+class _AddIngredientSheet extends StatefulWidget {
+  final Function(Ingredient) onAdd;
+  final Ingredient? initial;
+  const _AddIngredientSheet({required this.onAdd, this.initial});
+  @override
+  State<_AddIngredientSheet> createState() => _AddIngredientSheetState();
+}
+
+class _AddIngredientSheetState extends State<_AddIngredientSheet> {
   final _nameController = TextEditingController();
   final _quantityController = TextEditingController();
   final _unitController = TextEditingController();
   final _expiryController = TextEditingController();
+  bool _isAdding = false;
 
   @override
   void initState() {
     super.initState();
-    // Set default expiry date to 7 days from now
-    _expiryController.text =
-        DateTime.now()
-            .add(const Duration(days: 7))
-            .toIso8601String()
-            .split('T')
-            .first;
+    if (widget.initial != null) {
+      _nameController.text = widget.initial!.name;
+      _quantityController.text = widget.initial!.quantity?.toString() ?? '';
+      _unitController.text = widget.initial!.unit ?? '';
+      _expiryController.text =
+          widget.initial!.expiryDate?.toIso8601String().split('T').first ??
+          DateTime.now()
+              .add(const Duration(days: 7))
+              .toIso8601String()
+              .split('T')
+              .first;
+    } else {
+      _expiryController.text =
+          DateTime.now()
+              .add(const Duration(days: 7))
+              .toIso8601String()
+              .split('T')
+              .first;
+    }
   }
 
   @override
@@ -419,16 +411,12 @@ class _AddIngredientDialogState extends State<_AddIngredientDialog> {
         _expiryController.text.isNotEmpty
             ? DateTime.parse(_expiryController.text)
             : DateTime.now().add(const Duration(days: 7));
-
     final pickedDate = await showDatePicker(
       context: context,
       initialDate: currentDate,
-      firstDate: DateTime.now().subtract(
-        const Duration(days: 30),
-      ), // Allow backdating a month
+      firstDate: DateTime.now().subtract(const Duration(days: 30)),
       lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
     );
-
     if (pickedDate != null) {
       setState(() {
         _expiryController.text = pickedDate.toIso8601String().split('T').first;
@@ -436,14 +424,15 @@ class _AddIngredientDialogState extends State<_AddIngredientDialog> {
     }
   }
 
-  void _addIngredient() {
+  Future<void> _addIngredient() async {
     if (_nameController.text.isEmpty) return;
-
+    setState(() {
+      _isAdding = true;
+    });
     double? quantity;
     if (_quantityController.text.isNotEmpty) {
       quantity = double.tryParse(_quantityController.text);
     }
-
     final ingredient = Ingredient(
       name: _nameController.text,
       isOwned: true,
@@ -451,95 +440,136 @@ class _AddIngredientDialogState extends State<_AddIngredientDialog> {
       unit: _unitController.text.isEmpty ? null : _unitController.text,
       expiryDate: DateTime.parse(_expiryController.text),
     );
-
-    widget.onAdd(ingredient);
-    Navigator.of(context).pop();
+    try {
+      await FirestoreService().addPantryItem(ingredient);
+      if (mounted) {
+        Navigator.of(context).pop();
+        await showCustomInfoDialog(
+          context: context,
+          title: 'Success',
+          message: 'Ingredient added successfully.',
+          icon: Icons.check_circle,
+        );
+        widget.onAdd(ingredient);
+      }
+    } catch (e) {
+      if (mounted) {
+        await showCustomInfoDialog(
+          context: context,
+          title: 'Error',
+          message: 'Failed to add: $e',
+          icon: Icons.error,
+          isDestructive: true,
+        );
+      }
+    } finally {
+      if (mounted)
+        setState(() {
+          _isAdding = false;
+        });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Add Ingredient'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Name',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: TextField(
-                    controller: _quantityController,
-                    decoration: const InputDecoration(
-                      labelText: 'Quantity',
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    controller: _unitController,
-                    decoration: const InputDecoration(
-                      labelText: 'Unit',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            const Text('Expiry Date'),
-            const SizedBox(height: 8),
-            InkWell(
-              onTap: _selectExpiryDate,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      _expiryController.text,
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                    const Icon(Icons.calendar_today),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: _addIngredient,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF97B380),
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Add Ingredient',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
-          child: const Text('Add'),
-        ),
-      ],
+          const SizedBox(height: 16),
+          TextField(
+            controller: _nameController,
+            decoration: const InputDecoration(
+              labelText: 'Name',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: TextField(
+                  controller: _quantityController,
+                  decoration: const InputDecoration(
+                    labelText: 'Quantity',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.number,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  controller: _unitController,
+                  decoration: const InputDecoration(
+                    labelText: 'Unit',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Text('Expiry Date'),
+          const SizedBox(height: 8),
+          InkWell(
+            onTap: _selectExpiryDate,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _expiryController.text,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  const Icon(Icons.calendar_today),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _isAdding ? null : _addIngredient,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4CAF50),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              child:
+                  _isAdding
+                      ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                      : const Text(
+                        'Add Ingredient',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
     );
   }
 }

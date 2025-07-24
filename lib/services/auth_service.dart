@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
-import 'package:firebase_core/firebase_core.dart';
 import '../models/user.dart';
 
 // Custom auth exception for better error handling
@@ -69,6 +68,9 @@ class AuthService {
   // Get the current user
   User? get currentUser => _currentUser;
 
+  // Get the current user's UID
+  String? get currentUserId => _currentUser?.id;
+
   // Flag to track if initialized
   bool _isInitialized = false;
 
@@ -128,16 +130,26 @@ class AuthService {
   Future<User> createUserWithEmailAndPassword(
     String email,
     String password,
-    String name,
+    String firstName,
+    String lastName,
   ) async {
     try {
       final credential = await _firebaseAuth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
-      await credential.user!.updateDisplayName(name);
-
-      _updateCurrentUser(credential.user);
+      final displayName = '$firstName $lastName'.trim();
+      await credential.user!.updateDisplayName(displayName);
+      // Optionally, store firstName and lastName in Firestore if you have a user collection
+      _currentUser = User(
+        id: credential.user!.uid,
+        email: email,
+        name: displayName,
+        firstName: firstName,
+        lastName: lastName,
+        createdAt: credential.user!.metadata.creationTime ?? DateTime.now(),
+      );
+      _authStateController.add(_currentUser);
       return _currentUser!;
     } on fb_auth.FirebaseAuthException catch (e) {
       throw AuthException.fromFirebaseError(e);
