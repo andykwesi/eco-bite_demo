@@ -301,35 +301,12 @@ class _GroceryCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      ingredient.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    if (ingredient.quantity != null || ingredient.unit != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4.0),
-                        child: Row(
-                          children: [
-                            if (ingredient.quantity != null)
-                              Text(
-                                '${ingredient.quantity}',
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                            if (ingredient.unit != null)
-                              Text(
-                                ' ${ingredient.unit}',
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                          ],
-                        ),
-                      ),
-                  ],
+                child: Text(
+                  ingredient.name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
               ),
               const Icon(Icons.chevron_right, color: Color(0xFF8B8B8B)),
@@ -351,8 +328,6 @@ class _AddGrocerySheet extends StatefulWidget {
 
 class _AddGrocerySheetState extends State<_AddGrocerySheet> {
   final _nameController = TextEditingController();
-  final _quantityController = TextEditingController();
-  final _unitController = TextEditingController();
   bool _isAdding = false;
 
   @override
@@ -360,16 +335,12 @@ class _AddGrocerySheetState extends State<_AddGrocerySheet> {
     super.initState();
     if (widget.initial != null) {
       _nameController.text = widget.initial!.name;
-      _quantityController.text = widget.initial!.quantity?.toString() ?? '';
-      _unitController.text = widget.initial!.unit ?? '';
     }
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _quantityController.dispose();
-    _unitController.dispose();
     super.dispose();
   }
 
@@ -378,15 +349,9 @@ class _AddGrocerySheetState extends State<_AddGrocerySheet> {
     setState(() {
       _isAdding = true;
     });
-    double? quantity;
-    if (_quantityController.text.isNotEmpty) {
-      quantity = double.tryParse(_quantityController.text);
-    }
     final ingredient = Ingredient(
       name: _nameController.text.trim(),
       isOwned: false,
-      quantity: quantity,
-      unit: _unitController.text.isEmpty ? null : _unitController.text,
     );
     await widget.onAdd(ingredient);
     if (mounted) {
@@ -421,32 +386,6 @@ class _AddGrocerySheetState extends State<_AddGrocerySheet> {
               labelText: 'Name',
               border: OutlineInputBorder(),
             ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: TextField(
-                  controller: _quantityController,
-                  decoration: const InputDecoration(
-                    labelText: 'Quantity',
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.number,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextField(
-                  controller: _unitController,
-                  decoration: const InputDecoration(
-                    labelText: 'Unit',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ),
-            ],
           ),
           const SizedBox(height: 24),
           SizedBox(
