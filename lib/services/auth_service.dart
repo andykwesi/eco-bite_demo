@@ -189,6 +189,20 @@ class AuthService {
     }
   }
 
+  // Send password reset email
+  Future<void> sendPasswordResetEmail(String email) async {
+    try {
+      await _firebaseAuth.sendPasswordResetEmail(email: email);
+    } on fb_auth.FirebaseAuthException catch (e) {
+      throw AuthException.fromFirebaseError(e);
+    } catch (e) {
+      throw AuthException(
+        'unknown',
+        'An unexpected error occurred while sending reset email: ${e.toString()}',
+      );
+    }
+  }
+
   void dispose() {
     _authStateController.close();
   }

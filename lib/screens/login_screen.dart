@@ -214,6 +214,17 @@ class _LoginScreenState extends State<LoginScreen> {
                             return null;
                           },
                         ),
+                        if (_isLogin)
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: _showForgotPasswordDialog,
+                              child: Text(
+                                'Forgot Password?',
+                                style: TextStyle(color: Colors.blue.shade700),
+                              ),
+                            ),
+                          ),
                         const SizedBox(height: 24),
                         ElevatedButton(
                           onPressed: _isLoading ? null : _submitForm,
@@ -260,6 +271,79 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  void _showForgotPasswordDialog() {
+    final TextEditingController emailController = TextEditingController(
+      text: _emailController.text,
+    );
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Reset Password'),
+          content: TextField(
+            controller: emailController,
+            keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(labelText: 'Enter your email'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final email = emailController.text.trim();
+                if (email.isEmpty) {
+                  DialogHelper.showErrorDialog(
+                    context: context,
+                    title: 'Error',
+                    message: 'Please enter your email.',
+                  );
+                  return;
+                }
+                try {
+                  await _authService.sendPasswordResetEmail(email);
+                  if (mounted) {
+                    Navigator.of(context).pop();
+                    showDialog(
+                      context: context,
+                      builder:
+                          (context) => AlertDialog(
+                            title: const Text('Email Sent'),
+                            content: const Text(
+                              'A password reset link has been sent to your email.',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: const Text('OK'),
+                              ),
+                            ],
+                          ),
+                    );
+                  }
+                } on AuthException catch (e) {
+                  DialogHelper.showErrorDialog(
+                    context: context,
+                    title: 'Reset Failed',
+                    message: e.message,
+                  );
+                } catch (e) {
+                  DialogHelper.showErrorDialog(
+                    context: context,
+                    title: 'Error',
+                    message: 'An unexpected error occurred. Please try again.',
+                  );
+                }
+              },
+              child: const Text('Send'),
+            ),
+          ],
+        );
+      },
     );
   }
 }
