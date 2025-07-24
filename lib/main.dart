@@ -35,7 +35,6 @@ class EcoBiteApp extends StatefulWidget {
 }
 
 class _EcoBiteAppState extends State<EcoBiteApp> {
-  final _authService = AuthService();
   bool _isInitializing = true;
 
   @override
@@ -62,10 +61,41 @@ class _EcoBiteAppState extends State<EcoBiteApp> {
       title: 'EcoBite',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF97B380),
-          primary: const Color(0xFF97B380),
+          seedColor: const Color(0xFF4CAF50),
+          primary: const Color(0xFF4CAF50),
+          background: const Color(0xFFF8F8F8),
         ),
-        fontFamily: 'Roboto',
+        scaffoldBackgroundColor: const Color(0xFFF8F8F8),
+        fontFamily: 'Poppins',
+        textTheme: const TextTheme(
+          displayLarge: TextStyle(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.bold,
+          ),
+          displayMedium: TextStyle(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.bold,
+          ),
+          displaySmall: TextStyle(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.bold,
+          ),
+          headlineMedium: TextStyle(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.w600,
+          ),
+          headlineSmall: TextStyle(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.w600,
+          ),
+          titleLarge: TextStyle(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.w500,
+          ),
+          bodyLarge: TextStyle(fontFamily: 'Poppins'),
+          bodyMedium: TextStyle(fontFamily: 'Poppins'),
+          labelLarge: TextStyle(fontFamily: 'Poppins'),
+        ),
         useMaterial3: true,
       ),
       routes: {

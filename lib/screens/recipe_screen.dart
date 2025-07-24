@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/ingredient.dart';
 import '../models/recipe.dart';
-import '../widgets/ingredient_list_item.dart';
 
 class RecipeScreen extends StatefulWidget {
   final Recipe recipe;

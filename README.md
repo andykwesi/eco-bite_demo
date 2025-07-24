@@ -50,7 +50,7 @@ The app includes the following screens:
 
 - google_fonts: ^5.1.0
 - cached_network_image: ^3.3.1
-- flutter_barcode_scanner: ^2.0.0
 - intl: ^0.18.1
 - shared_preferences: ^2.2.2
+
 # eco-bite_demo

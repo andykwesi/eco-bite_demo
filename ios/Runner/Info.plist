@@ -1,149 +1,145 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-<dict>
-	<key>
+	<dict>
+		<key>
 			CADisableMinimumFrameDurationOnPhone
 		</key>
-	<true/>
-	<key>
+		<true />
+		<key>
 			CFBundleDevelopmentRegion
 		</key>
-	<string>
+		<string>
 			$(DEVELOPMENT_LANGUAGE)
 		</string>
-	<key>
+		<key>
 			CFBundleDisplayName
 		</key>
-	<string>
+		<string>
 			Ecobite
 		</string>
-	<key>
+		<key>
 			CFBundleExecutable
 		</key>
-	<string>
+		<string>
 			$(EXECUTABLE_NAME)
 		</string>
-	<key>
+		<key>
 			CFBundleIdentifier
 		</key>
-	<string>
+		<string>
 			$(PRODUCT_BUNDLE_IDENTIFIER)
 		</string>
-	<key>
+		<key>
 			CFBundleInfoDictionaryVersion
 		</key>
-	<string>
+		<string>
 			6.0
 		</string>
-	<key>
+		<key>
 			CFBundleName
 		</key>
-	<string>
+		<string>
 			ecobite
 		</string>
-	<key>
+		<key>
 			CFBundlePackageType
 		</key>
-	<string>
+		<string>
 			APPL
 		</string>
-	<key>
+		<key>
 			CFBundleShortVersionString
 		</key>
-	<string>
+		<string>
 			$(FLUTTER_BUILD_NAME)
 		</string>
-	<key>
+		<key>
 			CFBundleSignature
 		</key>
-	<string>
+		<string>
 			????
 		</string>
-	<key>
+		<key>
 			CFBundleVersion
 		</key>
-	<string>
+		<string>
 			$(FLUTTER_BUILD_NUMBER)
 		</string>
-	<key>
+		<key>
 			LSRequiresIPhoneOS
 		</key>
-	<true/>
-	<key>
+		<true />
+		<key>
 			NSCameraUsageDescription
 		</key>
-	<string>
+		<string>
 			This app requires camera access to scan barcodes.
 		</string>
-	<key>
+		<key>
 			NSLocationWhenInUseUsageDescription
 		</key>
-	<string>
+		<string>
 			This app requires location access for location-based features.
 		</string>
-	<key>
+		<key>
 			NSMicrophoneUsageDescription
 		</key>
-	<string>
+		<string>
 			This app requires microphone access for voice input.
 		</string>
-	<key>
+		<key>
 			NSPhotoLibraryUsageDescription
 		</key>
-	<string>
+		<string>
 			This app requires photo library access to upload images.
 		</string>
-	<key>
+		<key>
 			UIApplicationSupportsIndirectInputEvents
 		</key>
-	<true/>
-	<key>
+		<true />
+		<key>
 			UILaunchStoryboardName
 		</key>
-	<string>
+		<string>
 			LaunchScreen
 		</string>
-	<key>
+		<key>
 			UIMainStoryboardFile
 		</key>
-	<string>
+		<string>
 			Main
 		</string>
-	<key>
+		<key>
 			UISupportedInterfaceOrientations
 		</key>
-	<array>
-		<string>
+		<array>
+			<string>
 				UIInterfaceOrientationPortrait
 			</string>
-		<string>
+			<string>
 				UIInterfaceOrientationLandscapeLeft
 			</string>
-		<string>
+			<string>
 				UIInterfaceOrientationLandscapeRight
 			</string>
-	</array>
-	<key>
+		</array>
+		<key>
 			UISupportedInterfaceOrientations~ipad
 		</key>
-	<array>
-		<string>
+		<array>
+			<string>
 				UIInterfaceOrientationPortrait
 			</string>
-		<string>
+			<string>
 				UIInterfaceOrientationPortraitUpsideDown
 			</string>
-		<string>
+			<string>
 				UIInterfaceOrientationLandscapeLeft
 			</string>
-		<string>
+			<string>
 				UIInterfaceOrientationLandscapeRight
 			</string>
-	</array>
-	<key>UISupportedInterfaceOrientations</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-	</array>
-</dict>
+		</array>
+	</dict>
 </plist>
