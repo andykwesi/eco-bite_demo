@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/ingredient.dart';
-import '../widgets/ingredient_list_item.dart';
 import '../services/firestore_service.dart';
 import '../widgets/error_dialog.dart';
 
