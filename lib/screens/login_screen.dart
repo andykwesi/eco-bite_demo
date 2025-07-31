@@ -13,7 +13,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _nameController = TextEditingController(); // For signup
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
   final _authService = AuthService();
   bool _isLoading = false;
   bool _isLogin = true; // Toggle between login and signup
@@ -23,7 +24,8 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
-    _nameController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     super.dispose();
   }
 
@@ -44,11 +46,8 @@ class _LoginScreenState extends State<LoginScreen> {
         await _authService.createUserWithEmailAndPassword(
           _emailController.text.trim(),
           _passwordController.text,
-          _nameController.text.trim().isNotEmpty
-              ? _nameController.text.trim()
-              : _emailController.text
-                  .split('@')
-                  .first, // Use email as fallback name
+          _firstNameController.text.trim(),
+          _lastNameController.text.trim(),
         );
       }
 
@@ -57,18 +56,38 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } on AuthException catch (e) {
       if (mounted) {
-        DialogHelper.showErrorDialog(
+        showDialog(
           context: context,
-          title: _isLogin ? 'Login Failed' : 'Sign Up Failed',
-          message: e.message,
+          builder:
+              (context) => AlertDialog(
+                title: Text(_isLogin ? 'Login Failed' : 'Sign Up Failed'),
+                content: Text(e.message),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('OK'),
+                  ),
+                ],
+              ),
         );
       }
     } catch (e) {
       if (mounted) {
-        DialogHelper.showErrorDialog(
+        showDialog(
           context: context,
-          title: 'Error',
-          message: 'An unexpected error occurred. Please try again.',
+          builder:
+              (context) => AlertDialog(
+                title: const Text('Error'),
+                content: const Text(
+                  'An unexpected error occurred. Please try again.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('OK'),
+                  ),
+                ],
+              ),
         );
       }
     } finally {
@@ -170,15 +189,45 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 16),
                         if (!_isLogin) ...[
-                          TextFormField(
-                            controller: _nameController,
-                            decoration: InputDecoration(
-                              labelText: 'Full Name (optional)',
-                              prefixIcon: const Icon(Icons.person),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _firstNameController,
+                                  decoration: InputDecoration(
+                                    labelText: 'First Name',
+                                    prefixIcon: const Icon(Icons.person),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Enter first name';
+                                    }
+                                    return null;
+                                  },
+                                ),
                               ),
-                            ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _lastNameController,
+                                  decoration: InputDecoration(
+                                    labelText: 'Last Name',
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Enter last name';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 16),
                         ],
@@ -214,6 +263,17 @@ class _LoginScreenState extends State<LoginScreen> {
                             return null;
                           },
                         ),
+                        if (_isLogin)
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: _showForgotPasswordDialog,
+                              child: Text(
+                                'Forgot Password?',
+                                style: TextStyle(color: Colors.blue.shade700),
+                              ),
+                            ),
+                          ),
                         const SizedBox(height: 24),
                         ElevatedButton(
                           onPressed: _isLoading ? null : _submitForm,
@@ -260,6 +320,108 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  void _showForgotPasswordDialog() {
+    final TextEditingController emailController = TextEditingController(
+      text: _emailController.text,
+    );
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Reset Password'),
+          content: TextField(
+            controller: emailController,
+            keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(labelText: 'Enter your email'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final email = emailController.text.trim();
+                if (email.isEmpty) {
+                  showDialog(
+                    context: context,
+                    builder:
+                        (context) => AlertDialog(
+                          title: const Text('Error'),
+                          content: const Text('Please enter your email.'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              child: const Text('OK'),
+                            ),
+                          ],
+                        ),
+                  );
+                  return;
+                }
+                try {
+                  await _authService.sendPasswordResetEmail(email);
+                  if (mounted) {
+                    Navigator.of(context).pop();
+                    showDialog(
+                      context: context,
+                      builder:
+                          (context) => AlertDialog(
+                            title: const Text('Email Sent'),
+                            content: const Text(
+                              'A password reset link has been sent to your email.',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: const Text('OK'),
+                              ),
+                            ],
+                          ),
+                    );
+                  }
+                } on AuthException catch (e) {
+                  showDialog(
+                    context: context,
+                    builder:
+                        (context) => AlertDialog(
+                          title: const Text('Reset Failed'),
+                          content: Text(e.message),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              child: const Text('OK'),
+                            ),
+                          ],
+                        ),
+                  );
+                } catch (e) {
+                  showDialog(
+                    context: context,
+                    builder:
+                        (context) => AlertDialog(
+                          title: const Text('Error'),
+                          content: const Text(
+                            'An unexpected error occurred. Please try again.',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              child: const Text('OK'),
+                            ),
+                          ],
+                        ),
+                  );
+                }
+              },
+              child: const Text('Send'),
+            ),
+          ],
+        );
+      },
     );
   }
 }

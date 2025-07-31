@@ -1,127 +1,125 @@
 import 'package:flutter/material.dart';
 
-class DialogHelper {
-  // Show an error dialog with a title and message
-  static Future<void> showErrorDialog({
-    required BuildContext context,
-    required String title,
-    required String message,
-  }) async {
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: true,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(
-            title,
-            style: const TextStyle(
-              color: Colors.red,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          content: SingleChildScrollView(child: Text(message)),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('OK'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
+class CustomAlertDialog extends StatelessWidget {
+  final String title;
+  final String message;
+  final String confirmText;
+  final String? cancelText;
+  final VoidCallback? onConfirm;
+  final VoidCallback? onCancel;
+  final bool isDestructive;
+  final IconData? icon;
 
-  // Show a success dialog with a message
-  static Future<void> showSuccessDialog({
-    required BuildContext context,
-    required String title,
-    required String message,
-  }) async {
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: true,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(
-            title,
-            style: const TextStyle(
-              color: Colors.green,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          content: SingleChildScrollView(child: Text(message)),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('OK'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
+  const CustomAlertDialog({
+    super.key,
+    required this.title,
+    required this.message,
+    required this.confirmText,
+    this.cancelText,
+    this.onConfirm,
+    this.onCancel,
+    this.isDestructive = false,
+    this.icon,
+  });
 
-  // Show a confirmation dialog with a message
-  static Future<bool> showConfirmationDialog({
-    required BuildContext context,
-    required String title,
-    required String message,
-    String confirmText = 'Confirm',
-    String cancelText = 'Cancel',
-  }) async {
-    final result = await showDialog<bool>(
-      context: context,
-      barrierDismissible: true,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(title),
-          content: SingleChildScrollView(child: Text(message)),
-          actions: <Widget>[
-            TextButton(
-              child: Text(cancelText),
-              onPressed: () {
-                Navigator.of(context).pop(false);
-              },
-            ),
-            TextButton(
-              style: TextButton.styleFrom(
-                foregroundColor: Theme.of(context).primaryColor,
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            if (icon != null)
+              Icon(
+                icon,
+                size: 48,
+                color: isDestructive ? Colors.red : const Color(0xFF4CAF50),
               ),
-              child: Text(confirmText),
-              onPressed: () {
-                Navigator.of(context).pop(true);
-              },
+            const SizedBox(height: 12),
+            Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (cancelText != null)
+                  TextButton(
+                    onPressed:
+                        onCancel ?? () => Navigator.of(context).pop(false),
+                    child: Text(cancelText!),
+                  ),
+                ElevatedButton(
+                  onPressed: onConfirm ?? () => Navigator.of(context).pop(true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        isDestructive ? Colors.red : const Color(0xFF4CAF50),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(confirmText),
+                ),
+              ],
             ),
           ],
-        );
-      },
+        ),
+      ),
     );
-    return result ?? false;
   }
+}
 
-  // Show a loading dialog
-  static Future<void> showLoadingDialog({
-    required BuildContext context,
-    String message = 'Loading...',
-  }) async {
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          content: Row(
-            children: [
-              const CircularProgressIndicator(),
-              const SizedBox(width: 20),
-              Expanded(child: Text(message)),
-            ],
-          ),
-        );
-      },
-    );
-  }
+Future<bool?> showCustomConfirmDialog({
+  required BuildContext context,
+  required String title,
+  required String message,
+  String confirmText = 'Confirm',
+  String cancelText = 'Cancel',
+  bool isDestructive = false,
+  IconData? icon,
+}) {
+  return showDialog<bool>(
+    context: context,
+    builder:
+        (context) => CustomAlertDialog(
+          title: title,
+          message: message,
+          confirmText: confirmText,
+          cancelText: cancelText,
+          isDestructive: isDestructive,
+          icon: icon,
+        ),
+  );
+}
+
+Future<void> showCustomInfoDialog({
+  required BuildContext context,
+  required String title,
+  required String message,
+  String confirmText = 'OK',
+  IconData? icon,
+  bool isDestructive = false,
+}) {
+  return showDialog<void>(
+    context: context,
+    builder:
+        (context) => CustomAlertDialog(
+          title: title,
+          message: message,
+          confirmText: confirmText,
+          isDestructive: isDestructive,
+          icon: icon,
+        ),
+  );
 }
