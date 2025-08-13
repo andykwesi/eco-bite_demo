@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/recipe.dart';
+import '../widgets/recipe_generation_dialog.dart';
 
 class RecipeScreen extends StatefulWidget {
   final Recipe recipe;
@@ -25,11 +26,40 @@ class _RecipeScreenState extends State<RecipeScreen>
     super.dispose();
   }
 
+  void _showRecipeGenerationDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => RecipeGenerationDialog(
+        availableIngredients: widget.recipe.ingredients,
+      ),
+    ).then((generatedRecipe) {
+      if (generatedRecipe != null) {
+        // Navigate to the generated recipe
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => RecipeScreen(recipe: generatedRecipe),
+          ),
+        );
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final recipe = widget.recipe;
     return Scaffold(
       backgroundColor: const Color(0xFFF8F8F8),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showRecipeGenerationDialog(),
+        backgroundColor: const Color(0xFF9C27B0),
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.auto_awesome),
+        label: const Text('AI Recipe'),
+        elevation: 8,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+      ),
       body: SafeArea(
         child: ListView(
           children: [
@@ -338,6 +368,30 @@ class _RecipeScreenState extends State<RecipeScreen>
                     ),
                   ),
                   const SizedBox(height: 32),
+                  
+                  // AI Recipe Generation Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _showRecipeGenerationDialog(),
+                      icon: const Icon(Icons.auto_awesome),
+                      label: const Text('Generate AI Recipe'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF9C27B0),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        textStyle: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [

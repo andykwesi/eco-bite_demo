@@ -10,7 +10,8 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen>
+    with WidgetsBindingObserver {
   final _authService = AuthService();
   User? _currentUser;
   bool _isLoading = true;
@@ -18,7 +19,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadUserData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Reload data when screen gains focus
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadUserData();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // Reload data when app becomes visible
+      _loadUserData();
+    }
   }
 
   Future<void> _loadUserData() async {
@@ -91,146 +119,176 @@ class _ProfileScreenState extends State<ProfileScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text('Profile', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+        title: const Text(
+          'Profile',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+        ),
         centerTitle: true,
       ),
       body: SafeArea(
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : _currentUser == null
+        child:
+            _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _currentUser == null
                 ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'Not logged in',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).pushReplacementNamed('/login');
+                        },
+                        child: const Text('Go to Login'),
+                      ),
+                    ],
+                  ),
+                )
+                : SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        const Text(
-                          'Not logged in',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        Stack(
+                          alignment: Alignment.bottomRight,
+                          children: [
+                            const CircleAvatar(
+                              radius: 50,
+                              backgroundColor: Color(0xFF4CAF50),
+                              child: Icon(
+                                Icons.person,
+                                size: 50,
+                                color: Colors.white,
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 4,
+                              right: 4,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.1),
+                                      blurRadius: 4,
+                                    ),
+                                  ],
+                                ),
+                                child: IconButton(
+                                  icon: const Icon(
+                                    Icons.edit,
+                                    size: 18,
+                                    color: Color(0xFF4CAF50),
+                                  ),
+                                  onPressed: () async {
+                                    await showCustomInfoDialog(
+                                      context: context,
+                                      title: 'Profile Picture',
+                                      message:
+                                          'Profile picture editing is not implemented.',
+                                      icon: Icons.info_outline,
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 20),
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.of(context).pushReplacementNamed('/login');
+                        _EditableProfileInfo(user: _currentUser!),
+                        const SizedBox(height: 20),
+                        _ImpactCard(user: _currentUser!),
+                        const SizedBox(height: 30),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Settings',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade800,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        _buildSettingItem(
+                          'Notifications',
+                          Icons.notifications_none,
+                          onTap:
+                              () => showCustomInfoDialog(
+                                context: context,
+                                title: 'Not Implemented',
+                                message:
+                                    'Notification settings are not yet implemented.',
+                                icon: Icons.info_outline,
+                              ),
+                        ),
+                        _buildSettingItem(
+                          'Privacy',
+                          Icons.privacy_tip_outlined,
+                          onTap:
+                              () => showCustomInfoDialog(
+                                context: context,
+                                title: 'Not Implemented',
+                                message:
+                                    'Privacy settings are not yet implemented.',
+                                icon: Icons.info_outline,
+                              ),
+                        ),
+                        _buildSettingItem(
+                          'Help & Support',
+                          Icons.help_outline,
+                          onTap:
+                              () => showCustomInfoDialog(
+                                context: context,
+                                title: 'Not Implemented',
+                                message:
+                                    'Help & Support is not yet implemented.',
+                                icon: Icons.info_outline,
+                              ),
+                        ),
+                        const SizedBox(height: 30),
+                        ElevatedButton.icon(
+                          onPressed: () async {
+                            final confirm = await showCustomConfirmDialog(
+                              context: context,
+                              title: 'Sign Out',
+                              message: 'Are you sure you want to sign out?',
+                              confirmText: 'Sign Out',
+                              cancelText: 'Cancel',
+                              isDestructive: true,
+                              icon: Icons.logout,
+                            );
+                            if (confirm == true) {
+                              _handleSignOut();
+                            }
                           },
-                          child: const Text('Go to Login'),
+                          icon: const Icon(Icons.logout),
+                          label: const Text('Sign Out'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red.shade100,
+                            foregroundColor: Colors.red.shade700,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 30,
+                              vertical: 12,
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                  )
-                : SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Stack(
-                            alignment: Alignment.bottomRight,
-                            children: [
-                              const CircleAvatar(
-                                radius: 50,
-                                backgroundColor: Color(0xFF4CAF50),
-                                child: Icon(Icons.person, size: 50, color: Colors.white),
-                              ),
-                              Positioned(
-                                bottom: 4,
-                                right: 4,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.1),
-                                        blurRadius: 4,
-                                      ),
-                                    ],
-                                  ),
-                                  child: IconButton(
-                                    icon: const Icon(Icons.edit, size: 18, color: Color(0xFF4CAF50)),
-                                    onPressed: () async {
-                                      await showCustomInfoDialog(
-                                        context: context,
-                                        title: 'Profile Picture',
-                                        message: 'Profile picture editing is not implemented.',
-                                        icon: Icons.info_outline,
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
-                          _EditableProfileInfo(user: _currentUser!),
-                          const SizedBox(height: 20),
-                          _ImpactCard(user: _currentUser!),
-                          const SizedBox(height: 30),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text('Settings', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.grey.shade800)),
-                          ),
-                          const SizedBox(height: 10),
-                          _buildSettingItem(
-                            'Notifications',
-                            Icons.notifications_none,
-                            onTap: () => showCustomInfoDialog(
-                              context: context,
-                              title: 'Not Implemented',
-                              message: 'Notification settings are not yet implemented.',
-                              icon: Icons.info_outline,
-                            ),
-                          ),
-                          _buildSettingItem(
-                            'Privacy',
-                            Icons.privacy_tip_outlined,
-                            onTap: () => showCustomInfoDialog(
-                              context: context,
-                              title: 'Not Implemented',
-                              message: 'Privacy settings are not yet implemented.',
-                              icon: Icons.info_outline,
-                            ),
-                          ),
-                          _buildSettingItem(
-                            'Help & Support',
-                            Icons.help_outline,
-                            onTap: () => showCustomInfoDialog(
-                              context: context,
-                              title: 'Not Implemented',
-                              message: 'Help & Support is not yet implemented.',
-                              icon: Icons.info_outline,
-                            ),
-                          ),
-                          const SizedBox(height: 30),
-                          ElevatedButton.icon(
-                            onPressed: () async {
-                              final confirm = await showCustomConfirmDialog(
-                                context: context,
-                                title: 'Sign Out',
-                                message: 'Are you sure you want to sign out?',
-                                confirmText: 'Sign Out',
-                                cancelText: 'Cancel',
-                                isDestructive: true,
-                                icon: Icons.logout,
-                              );
-                              if (confirm == true) {
-                                _handleSignOut();
-                              }
-                            },
-                            icon: const Icon(Icons.logout),
-                            label: const Text('Sign Out'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red.shade100,
-                              foregroundColor: Colors.red.shade700,
-                              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   ),
-    ));
+                ),
+      ),
+    );
   }
 
   String _formatDate(DateTime date) {
@@ -303,8 +361,12 @@ class _EditableProfileInfoState extends State<_EditableProfileInfo> {
   @override
   void initState() {
     super.initState();
-    _firstNameController = TextEditingController(text: widget.user.firstName ?? '');
-    _lastNameController = TextEditingController(text: widget.user.lastName ?? '');
+    _firstNameController = TextEditingController(
+      text: widget.user.firstName ?? '',
+    );
+    _lastNameController = TextEditingController(
+      text: widget.user.lastName ?? '',
+    );
     _emailController = TextEditingController(text: widget.user.email);
   }
 
@@ -329,30 +391,45 @@ class _EditableProfileInfoState extends State<_EditableProfileInfo> {
             Row(
               children: [
                 Expanded(
-                  child: _editing
-                      ? TextField(
-                          controller: _firstNameController,
-                          decoration: const InputDecoration(labelText: 'First Name'),
-                        )
-                      : Text(
-                          widget.user.firstName ?? '',
-                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                        ),
+                  child:
+                      _editing
+                          ? TextField(
+                            controller: _firstNameController,
+                            decoration: const InputDecoration(
+                              labelText: 'First Name',
+                            ),
+                          )
+                          : Text(
+                            widget.user.firstName ?? '',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: _editing
-                      ? TextField(
-                          controller: _lastNameController,
-                          decoration: const InputDecoration(labelText: 'Last Name'),
-                        )
-                      : Text(
-                          widget.user.lastName ?? '',
-                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                        ),
+                  child:
+                      _editing
+                          ? TextField(
+                            controller: _lastNameController,
+                            decoration: const InputDecoration(
+                              labelText: 'Last Name',
+                            ),
+                          )
+                          : Text(
+                            widget.user.lastName ?? '',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                 ),
                 IconButton(
-                  icon: Icon(_editing ? Icons.check : Icons.edit, color: const Color(0xFF4CAF50)),
+                  icon: Icon(
+                    _editing ? Icons.check : Icons.edit,
+                    color: const Color(0xFF4CAF50),
+                  ),
                   onPressed: () async {
                     if (_editing) {
                       // Save changes (not implemented, just show dialog)
@@ -373,10 +450,13 @@ class _EditableProfileInfoState extends State<_EditableProfileInfo> {
             const SizedBox(height: 8),
             _editing
                 ? TextField(
-                    controller: _emailController,
-                    decoration: const InputDecoration(labelText: 'Email'),
-                  )
-                : Text(widget.user.email, style: const TextStyle(fontSize: 16, color: Colors.grey)),
+                  controller: _emailController,
+                  decoration: const InputDecoration(labelText: 'Email'),
+                )
+                : Text(
+                  widget.user.email,
+                  style: const TextStyle(fontSize: 16, color: Colors.grey),
+                ),
           ],
         ),
       ),
@@ -397,13 +477,24 @@ class _ImpactCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Your Impact', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            const Text(
+              'Your Impact',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildImpactMetric('Waste Reduced', '${(user.wasteReduction / 1000).toStringAsFixed(1)} kg', Icons.eco),
-                _buildImpactMetric('Money Saved', ' 24${(user.moneySaved / 100).toStringAsFixed(2)}', Icons.attach_money),
+                _buildImpactMetric(
+                  'Waste Reduced',
+                  '${(user.wasteReduction / 1000).toStringAsFixed(1)} kg',
+                  Icons.eco,
+                ),
+                _buildImpactMetric(
+                  'Money Saved',
+                  ' 24${(user.moneySaved / 100).toStringAsFixed(2)}',
+                  Icons.attach_money,
+                ),
               ],
             ),
           ],
@@ -417,8 +508,14 @@ class _ImpactCard extends StatelessWidget {
       children: [
         Icon(icon, color: Colors.green, size: 30),
         const SizedBox(height: 8),
-        Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-        Text(label, style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        Text(
+          label,
+          style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+        ),
       ],
     );
   }

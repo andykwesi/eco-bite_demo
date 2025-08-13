@@ -13,7 +13,14 @@ class Ingredient {
     this.expiryDate,
     this.quantity,
     this.unit,
-  });
+  }) {
+    // Debug logging
+    print('DEBUG: Creating Ingredient: $name');
+    print('DEBUG: - Is owned: $isOwned');
+    print('DEBUG: - Quantity: $quantity');
+    print('DEBUG: - Unit: $unit');
+    print('DEBUG: - Expiry date: $expiryDate');
+  }
 
   bool get isExpiring {
     if (expiryDate == null) return false;
@@ -38,18 +45,37 @@ class Ingredient {
   }
 
   factory Ingredient.fromMap(Map<String, dynamic> map) {
-    return Ingredient(
-      name: map['name'],
-      isOwned: map['isOwned'] ?? false,
-      icon: map['icon'],
-      expiryDate:
-          map['expiryDate'] != null
-              ? DateTime.tryParse(map['expiryDate'])
-              : null,
-      quantity:
-          map['quantity'] != null ? (map['quantity'] as num).toDouble() : null,
-      unit: map['unit'],
-    );
+    try {
+      print('DEBUG: Creating Ingredient from map: ${map['name']}');
+
+      final ingredient = Ingredient(
+        name: map['name'] ?? 'Unknown Ingredient',
+        isOwned: map['isOwned'] ?? false,
+        icon: map['icon'],
+        expiryDate:
+            map['expiryDate'] != null
+                ? DateTime.tryParse(map['expiryDate'])
+                : null,
+        quantity:
+            map['quantity'] != null
+                ? (map['quantity'] as num).toDouble()
+                : null,
+        unit: map['unit'],
+      );
+
+      print('DEBUG: Ingredient created successfully: ${ingredient.name}');
+      return ingredient;
+    } catch (e, stackTrace) {
+      print('DEBUG: Error creating Ingredient from map: $e');
+      print('DEBUG: Stack trace: $stackTrace');
+      print('DEBUG: Map data: $map');
+
+      // Return a default ingredient to prevent crashes
+      return Ingredient(
+        name: map['name'] ?? 'Error Ingredient',
+        isOwned: false,
+      );
+    }
   }
 
   Map<String, dynamic> toMap() {

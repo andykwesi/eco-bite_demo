@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/ingredient.dart';
 import '../services/firestore_service.dart';
 import '../widgets/error_dialog.dart';
+import '../screens/recipes_list_screen.dart';
 
 class PantryScreen extends StatefulWidget {
   const PantryScreen({super.key});
@@ -10,7 +11,8 @@ class PantryScreen extends StatefulWidget {
   State<PantryScreen> createState() => _PantryScreenState();
 }
 
-class _PantryScreenState extends State<PantryScreen> {
+class _PantryScreenState extends State<PantryScreen>
+    with WidgetsBindingObserver {
   final TextEditingController _searchController = TextEditingController();
   final FirestoreService _firestoreService = FirestoreService();
 
@@ -21,7 +23,35 @@ class _PantryScreenState extends State<PantryScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _fetchPantry();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Reload data when screen gains focus
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _fetchPantry();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // Reload data when app becomes visible
+      _fetchPantry();
+    }
   }
 
   Future<void> _fetchPantry() async {
@@ -82,10 +112,11 @@ class _PantryScreenState extends State<PantryScreen> {
     );
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
+  void _navigateToAISearch() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const RecipesListScreen()),
+    );
   }
 
   @override
@@ -111,8 +142,33 @@ class _PantryScreenState extends State<PantryScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            // AI Recipe Generation Button
+            if (_ingredients.isNotEmpty)
+              Container(
+                margin: const EdgeInsets.all(16),
+                child: ElevatedButton.icon(
+                  onPressed: _navigateToAISearch,
+                  icon: const Icon(Icons.auto_awesome),
+                  label: const Text('Generate AI Recipe from Pantry'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4CAF50),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 16,
+                      horizontal: 24,
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: Container(
                 height: 44,
                 decoration: BoxDecoration(
@@ -146,7 +202,6 @@ class _PantryScreenState extends State<PantryScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
             Expanded(
               child:
                   _isLoading
@@ -162,98 +217,115 @@ class _PantryScreenState extends State<PantryScreen> {
                       ? const Center(
                         child: Text('No ingredients in your pantry.'),
                       )
-                      : ListView.separated(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        itemCount: _filteredIngredients.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 12),
-                        itemBuilder: (context, index) {
-                          final ingredient = _filteredIngredients[index];
-                          return Dismissible(
-                            key: ValueKey(
-                              ingredient.name +
-                                  (ingredient.expiryDate?.toIso8601String() ??
-                                      ''),
-                            ),
-                            background: Container(
-                              alignment: Alignment.centerLeft,
-                              padding: const EdgeInsets.only(left: 24),
-                              color: Colors.blue.shade100,
-                              child: const Icon(Icons.edit, color: Colors.blue),
-                            ),
-                            secondaryBackground: Container(
-                              alignment: Alignment.centerRight,
-                              padding: const EdgeInsets.only(right: 24),
-                              color: Colors.red.shade100,
-                              child: const Icon(
-                                Icons.delete,
-                                color: Colors.red,
+                      : RefreshIndicator(
+                        onRefresh: _fetchPantry,
+                        child: ListView.separated(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          itemCount: _filteredIngredients.length,
+                          separatorBuilder:
+                              (_, __) => const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            final ingredient = _filteredIngredients[index];
+                            return Dismissible(
+                              key: ValueKey(
+                                ingredient.name +
+                                    (ingredient.expiryDate?.toIso8601String() ??
+                                        ''),
                               ),
-                            ),
-                            confirmDismiss: (direction) async {
-                              if (direction == DismissDirection.startToEnd) {
-                                // Edit
-                                _showAddIngredientSheet(
-                                  ingredient: ingredient,
-                                  index: index,
-                                );
-                                return false;
-                              } else if (direction ==
-                                  DismissDirection.endToStart) {
-                                // Delete
-                                final confirm = await showCustomConfirmDialog(
-                                  context: context,
-                                  title: 'Delete Ingredient',
-                                  message:
-                                      'Are you sure you want to delete this ingredient?',
-                                  confirmText: 'Delete',
-                                  cancelText: 'Cancel',
-                                  isDestructive: true,
-                                  icon: Icons.delete,
-                                );
-                                if (confirm == true) {
-                                  setState(() {
-                                    _ingredients.removeAt(index);
-                                  });
-                                  await showCustomInfoDialog(
-                                    context: context,
-                                    title: 'Deleted',
-                                    message: 'Ingredient deleted successfully.',
-                                    icon: Icons.check_circle,
+                              background: Container(
+                                alignment: Alignment.centerLeft,
+                                padding: const EdgeInsets.only(left: 24),
+                                color: Colors.blue.shade100,
+                                child: const Icon(
+                                  Icons.edit,
+                                  color: Colors.blue,
+                                ),
+                              ),
+                              secondaryBackground: Container(
+                                alignment: Alignment.centerRight,
+                                padding: const EdgeInsets.only(right: 24),
+                                color: Colors.red.shade100,
+                                child: const Icon(
+                                  Icons.delete,
+                                  color: Colors.red,
+                                ),
+                              ),
+                              confirmDismiss: (direction) async {
+                                if (direction == DismissDirection.startToEnd) {
+                                  // Edit
+                                  _showAddIngredientSheet(
+                                    ingredient: ingredient,
+                                    index: index,
                                   );
-                                  return true;
+                                  return false;
+                                } else if (direction ==
+                                    DismissDirection.endToStart) {
+                                  // Delete
+                                  final confirm = await showCustomConfirmDialog(
+                                    context: context,
+                                    title: 'Delete Ingredient',
+                                    message:
+                                        'Are you sure you want to delete this ingredient?',
+                                    confirmText: 'Delete',
+                                    cancelText: 'Cancel',
+                                    isDestructive: true,
+                                    icon: Icons.delete,
+                                  );
+                                  if (confirm == true) {
+                                    setState(() {
+                                      _ingredients.removeAt(index);
+                                    });
+                                    await showCustomInfoDialog(
+                                      context: context,
+                                      title: 'Deleted',
+                                      message:
+                                          'Ingredient deleted successfully.',
+                                      icon: Icons.check_circle,
+                                    );
+                                    return true;
+                                  }
+                                  return false;
                                 }
                                 return false;
-                              }
-                              return false;
-                            },
-                            child: _IngredientCard(
-                              ingredient: ingredient,
-                              onTap: () {
-                                showDialog(
-                                  context: context,
-                                  builder:
-                                      (context) => _IngredientDetailsDialog(
-                                        ingredient: ingredient,
-                                        onDelete: () {
-                                          setState(() {
-                                            _ingredients.removeWhere(
-                                              (i) => i.name == ingredient.name,
-                                            );
-                                          });
-                                        },
-                                      ),
-                                );
                               },
-                            ),
-                          );
-                        },
+                              child: _IngredientCard(
+                                ingredient: ingredient,
+                                onTap: () {
+                                  showDialog(
+                                    context: context,
+                                    builder:
+                                        (context) => _IngredientDetailsDialog(
+                                          ingredient: ingredient,
+                                          onDelete: () {
+                                            setState(() {
+                                              _ingredients.removeWhere(
+                                                (i) =>
+                                                    i.name == ingredient.name,
+                                              );
+                                            });
+                                          },
+                                        ),
+                                  );
+                                },
+                              ),
+                            );
+                          },
+                        ),
                       ),
             ),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _navigateToAISearch,
+        backgroundColor: const Color(0xFF4CAF50),
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.auto_awesome),
+        label: const Text('AI Recipes'),
+        tooltip: 'Generate AI Recipes from Pantry',
       ),
     );
   }

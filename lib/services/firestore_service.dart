@@ -34,6 +34,40 @@ class FirestoreService {
     await _recipesRef.doc(docId).delete();
   }
 
+  // AI Generated Recipes (Recent Search History)
+  CollectionReference<Map<String, dynamic>> get _aiRecipesRef =>
+      _db.collection('users').doc(_uid).collection('aiRecipes');
+
+  Future<List<Recipe>> fetchAIRecipes() async {
+    final snapshot =
+        await _aiRecipesRef
+            .orderBy('createdAt', descending: true)
+            .limit(20)
+            .get();
+    return snapshot.docs.map((doc) => Recipe.fromMap(doc.data())).toList();
+  }
+
+  Future<void> addAIRecipe(Recipe recipe) async {
+    final recipeData = recipe.toMap();
+    recipeData['createdAt'] = FieldValue.serverTimestamp();
+    recipeData['searchQuery'] =
+        recipe.source.contains('Search') ? recipe.source : '';
+    await _aiRecipesRef.add(recipeData);
+  }
+
+  Future<void> deleteAIRecipe(String docId) async {
+    await _aiRecipesRef.doc(docId).delete();
+  }
+
+  Future<void> clearAIRecipes() async {
+    final snapshot = await _aiRecipesRef.get();
+    final batch = _db.batch();
+    for (final doc in snapshot.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
+  }
+
   // Grocery List CRUD
   CollectionReference<Map<String, dynamic>> get _groceryRef =>
       _db.collection('users').doc(_uid).collection('groceryList');
