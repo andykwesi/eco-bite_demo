@@ -527,6 +527,40 @@ class _RecipesListScreenState extends State<RecipesListScreen>
       print('DEBUG: Servings: $servings');
       print('DEBUG: Max cooking time: $maxCookingTime');
 
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return WillPopScope(
+            onWillPop: () async => false,
+            child: AlertDialog(
+              backgroundColor: Colors.white,
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Color(0xFF4CAF50),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Generating AI Recipe...',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'This may take a few moments',
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+
       final recipe = await AIService.generateRecipeFromPantry(
         pantryIngredients: _selectedIngredients,
         cuisineType: selectedCuisineType,
@@ -534,6 +568,11 @@ class _RecipesListScreenState extends State<RecipesListScreen>
         servings: servings,
         maxCookingTime: maxCookingTime,
       );
+
+      // Close loading dialog
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
 
       print('DEBUG: Recipe generated: ${recipe?.name ?? 'null'}');
 
@@ -566,10 +605,18 @@ class _RecipesListScreenState extends State<RecipesListScreen>
         }
       }
     } catch (e) {
+      // Close loading dialog
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+
       print('DEBUG: Error in pantry recipe generation: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Error generating recipe: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
@@ -619,6 +666,40 @@ class _RecipesListScreenState extends State<RecipesListScreen>
       print('DEBUG: Servings: $servings');
       print('DEBUG: Max cooking time: $maxCookingTime');
 
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return WillPopScope(
+            onWillPop: () async => false,
+            child: AlertDialog(
+              backgroundColor: Colors.white,
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Color(0xFF4CAF50),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Generating AI Recipe...',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'This may take a few moments',
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+
       final recipe = await AIService.generateRecipeFromSearch(
         searchQuery: _searchController.text.trim(),
         availableIngredients: _pantryIngredients,
@@ -627,6 +708,11 @@ class _RecipesListScreenState extends State<RecipesListScreen>
         servings: servings,
         maxCookingTime: maxCookingTime,
       );
+
+      // Close loading dialog
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
 
       print('DEBUG: Recipe generated: ${recipe?.name ?? 'null'}');
 
@@ -657,10 +743,18 @@ class _RecipesListScreenState extends State<RecipesListScreen>
         }
       }
     } catch (e) {
+      // Close loading dialog
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+
       print('DEBUG: Error in search recipe generation: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Error generating recipe: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {

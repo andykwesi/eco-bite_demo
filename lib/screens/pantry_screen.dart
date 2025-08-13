@@ -97,14 +97,94 @@ class _PantryScreenState extends State<PantryScreen>
               top: 24,
             ),
             child: _AddIngredientSheet(
-              onAdd: (newIngredient) {
-                setState(() {
+              onAdd: (newIngredient) async {
+                // Show loading indicator
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (BuildContext context) {
+                    return WillPopScope(
+                      onWillPop: () async => false,
+                      child: AlertDialog(
+                        backgroundColor: Colors.white,
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              ingredient != null ? 'Updating ingredient...' : 'Adding ingredient...',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+
+                try {
+                  setState(() {
+                    if (ingredient != null && index != null) {
+                      _ingredients[index] = newIngredient;
+                    } else {
+                      _ingredients.add(newIngredient);
+                    }
+                  });
+
                   if (ingredient != null && index != null) {
-                    _ingredients[index] = newIngredient;
+                    await _firestoreService.updatePantryItem(
+                      ingredient.name,
+                      newIngredient,
+                    );
                   } else {
-                    _ingredients.add(newIngredient);
+                    await _firestoreService.addPantryItem(newIngredient);
                   }
-                });
+
+                  // Close loading dialog
+                  if (mounted) {
+                    Navigator.of(context).pop();
+                  }
+
+                  // Close bottom sheet
+                  if (mounted) {
+                    Navigator.of(context).pop();
+                  }
+
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          ingredient != null
+                              ? 'Ingredient updated successfully!'
+                              : 'Ingredient added successfully!',
+                        ),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  // Close loading dialog
+                  if (mounted) {
+                    Navigator.of(context).pop();
+                  }
+
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Failed to ${ingredient != null ? 'update' : 'add'} ingredient: $e',
+                        ),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
               },
               initial: ingredient,
             ),

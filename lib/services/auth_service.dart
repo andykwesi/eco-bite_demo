@@ -215,6 +215,63 @@ class AuthService {
     }
   }
 
+  // Update user profile
+  Future<void> updateUserProfile({
+    String? firstName,
+    String? lastName,
+    String? email,
+  }) async {
+    try {
+      final fbUser = _firebaseAuth.currentUser;
+      if (fbUser == null) {
+        throw AuthException(
+          'user-not-found',
+          'No user is currently signed in.',
+        );
+      }
+
+      // Update display name if firstName or lastName changed
+      if (firstName != null || lastName != null) {
+        final currentFirstName = _currentUser?.firstName ?? '';
+        final currentLastName = _currentUser?.lastName ?? '';
+        final newFirstName = firstName ?? currentFirstName;
+        final newLastName = lastName ?? currentLastName;
+        final displayName = '$newFirstName $newLastName'.trim();
+
+        await fbUser.updateDisplayName(displayName);
+      }
+
+      // Update email if provided
+      if (email != null && email != fbUser.email) {
+        await fbUser.updateEmail(email);
+      }
+
+      // Update local user object
+      if (_currentUser != null) {
+        _currentUser = User(
+          id: _currentUser!.id,
+          email: email ?? _currentUser!.email,
+          name: _currentUser!.name,
+          firstName: firstName ?? _currentUser!.firstName,
+          lastName: lastName ?? _currentUser!.lastName,
+          createdAt: _currentUser!.createdAt,
+          wasteReduction: _currentUser!.wasteReduction,
+          moneySaved: _currentUser!.moneySaved,
+        );
+
+        // Notify listeners of the update
+        _authStateController.add(_currentUser);
+      }
+    } on fb_auth.FirebaseAuthException catch (e) {
+      throw AuthException.fromFirebaseError(e);
+    } catch (e) {
+      throw AuthException(
+        'unknown',
+        'An unexpected error occurred while updating profile: ${e.toString()}',
+      );
+    }
+  }
+
   void dispose() {
     _authStateController.close();
   }

@@ -101,14 +101,49 @@ class _ShoppingListScreenState extends State<ShoppingListScreen>
             ),
             child: _AddGrocerySheet(
               onAdd: (newIngredient) async {
-                setState(() {
-                  if (ingredient != null && index != null) {
-                    _shoppingList[index] = newIngredient;
-                  } else {
-                    _shoppingList.add(newIngredient);
-                  }
-                });
+                // Show loading indicator
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (BuildContext context) {
+                    return WillPopScope(
+                      onWillPop: () async => false,
+                      child: AlertDialog(
+                        backgroundColor: Colors.white,
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Color(0xFF4CAF50),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              ingredient != null
+                                  ? 'Updating item...'
+                                  : 'Adding item...',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+
                 try {
+                  setState(() {
+                    if (ingredient != null && index != null) {
+                      _shoppingList[index] = newIngredient;
+                    } else {
+                      _shoppingList.add(newIngredient);
+                    }
+                  });
+
                   if (ingredient != null && index != null) {
                     await _firestoreService.updateGroceryItem(
                       ingredient.name,
@@ -117,25 +152,40 @@ class _ShoppingListScreenState extends State<ShoppingListScreen>
                   } else {
                     await _firestoreService.addGroceryItem(newIngredient);
                   }
-                  await _fetchGroceryList();
+
+                  // Close loading dialog
+                  if (mounted) {
+                    Navigator.of(context).pop();
+                  }
+
+                  // Close bottom sheet
+                  if (mounted) {
+                    Navigator.of(context).pop();
+                  }
+
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
                           ingredient != null
-                              ? 'Ingredient updated!'
-                              : 'Ingredient added!',
+                              ? 'Item updated successfully!'
+                              : 'Item added successfully!',
                         ),
                         backgroundColor: Colors.green,
                       ),
                     );
                   }
                 } catch (e) {
+                  // Close loading dialog
+                  if (mounted) {
+                    Navigator.of(context).pop();
+                  }
+
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                          'Failed to ${ingredient != null ? 'update' : 'add'}: $e',
+                          'Failed to ${ingredient != null ? 'update' : 'add'} item: $e',
                         ),
                         backgroundColor: Colors.red,
                       ),

@@ -357,6 +357,7 @@ class _EditableProfileInfoState extends State<_EditableProfileInfo> {
   late TextEditingController _lastNameController;
   late TextEditingController _emailController;
   bool _editing = false;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -378,6 +379,58 @@ class _EditableProfileInfoState extends State<_EditableProfileInfo> {
     super.dispose();
   }
 
+  Future<void> _saveProfile() async {
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      // Update the user profile in Firestore
+      await AuthService().updateUserProfile(
+        firstName: _firstNameController.text.trim(),
+        lastName: _lastNameController.text.trim(),
+        email: _emailController.text.trim(),
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profile updated successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Exit editing mode
+        setState(() {
+          _editing = false;
+        });
+
+        // Refresh the parent widget to show updated data
+        if (context.mounted) {
+          // Trigger a rebuild of the parent profile screen
+          final profileScreen =
+              context.findAncestorStateOfType<_ProfileScreenState>();
+          profileScreen?.setState(() {});
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update profile: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -397,13 +450,17 @@ class _EditableProfileInfoState extends State<_EditableProfileInfo> {
                             controller: _firstNameController,
                             decoration: const InputDecoration(
                               labelText: 'First Name',
+                              border: OutlineInputBorder(),
                             ),
                           )
                           : Text(
-                            widget.user.firstName ?? '',
+                            widget.user.firstName?.isNotEmpty == true
+                                ? widget.user.firstName!
+                                : 'First Name Not Set',
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
+                              color: Colors.black87,
                             ),
                           ),
                 ),
@@ -415,35 +472,39 @@ class _EditableProfileInfoState extends State<_EditableProfileInfo> {
                             controller: _lastNameController,
                             decoration: const InputDecoration(
                               labelText: 'Last Name',
+                              border: OutlineInputBorder(),
                             ),
                           )
                           : Text(
-                            widget.user.lastName ?? '',
+                            widget.user.lastName?.isNotEmpty == true
+                                ? widget.user.lastName!
+                                : 'Last Name Not Set',
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
+                              color: Colors.black87,
                             ),
                           ),
                 ),
                 IconButton(
                   icon: Icon(
-                    _editing ? Icons.check : Icons.edit,
+                    _editing
+                        ? (_isSaving ? Icons.hourglass_empty : Icons.check)
+                        : Icons.edit,
                     color: const Color(0xFF4CAF50),
                   ),
-                  onPressed: () async {
-                    if (_editing) {
-                      // Save changes (not implemented, just show dialog)
-                      await showCustomInfoDialog(
-                        context: context,
-                        title: 'Saved',
-                        message: 'Profile updated successfully.',
-                        icon: Icons.check_circle,
-                      );
-                    }
-                    setState(() {
-                      _editing = !_editing;
-                    });
-                  },
+                  onPressed:
+                      _isSaving
+                          ? null
+                          : () async {
+                            if (_editing) {
+                              await _saveProfile();
+                            } else {
+                              setState(() {
+                                _editing = true;
+                              });
+                            }
+                          },
                 ),
               ],
             ),
@@ -451,12 +512,66 @@ class _EditableProfileInfoState extends State<_EditableProfileInfo> {
             _editing
                 ? TextField(
                   controller: _emailController,
-                  decoration: const InputDecoration(labelText: 'Email'),
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(),
+                  ),
                 )
                 : Text(
                   widget.user.email,
                   style: const TextStyle(fontSize: 16, color: Colors.grey),
                 ),
+            if (_editing) ...[
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed:
+                          _isSaving
+                              ? null
+                              : () {
+                                setState(() {
+                                  _editing = false;
+                                  // Reset to original values
+                                  _firstNameController.text =
+                                      widget.user.firstName ?? '';
+                                  _lastNameController.text =
+                                      widget.user.lastName ?? '';
+                                  _emailController.text = widget.user.email;
+                                });
+                              },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey.shade300,
+                        foregroundColor: Colors.black87,
+                      ),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _isSaving ? null : _saveProfile,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF4CAF50),
+                        foregroundColor: Colors.white,
+                      ),
+                      child:
+                          _isSaving
+                              ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                              : const Text('Save'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
