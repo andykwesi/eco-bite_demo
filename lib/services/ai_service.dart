@@ -13,7 +13,7 @@ class AIService {
     return apiKey;
   }
 
-  static const String _baseUrl = "https://api.openai.com/v1/chat/completions"\;
+  static const String _baseUrl = "https://api.openai.com/v1/chat/completions";
 
   static Future<Recipe?> generateRecipe({
     required List<Ingredient> availableIngredients,
