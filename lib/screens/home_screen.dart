@@ -5,6 +5,10 @@ import '../screens/shopping_list_screen.dart';
 import '../screens/profile_screen.dart';
 import '../services/auth_service.dart';
 import '../models/user.dart';
+import '../widgets/ai_search_modal.dart';
+import '../services/firestore_service.dart';
+import '../models/ingredient.dart';
+import '../models/recipe.dart';
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
@@ -18,6 +22,8 @@ class _HomeTabState extends State<HomeTab> {
   late final AuthService _authService;
   late final Stream<User?> _authStream;
   int selectedCategory = 0;
+  List<Ingredient> _pantryIngredients = [];
+  final FirestoreService _firestoreService = FirestoreService();
 
   final List<String> categories = [
     'All',
@@ -42,6 +48,54 @@ class _HomeTabState extends State<HomeTab> {
         });
       }
     });
+    _loadPantryIngredients();
+  }
+
+  Future<void> _loadPantryIngredients() async {
+    try {
+      final ingredients = await _firestoreService.fetchPantry();
+      if (mounted) {
+        setState(() {
+          _pantryIngredients = ingredients;
+        });
+      }
+    } catch (e) {
+      // Handle error silently
+    }
+  }
+
+  void _showAISearchModal() async {
+    if (!mounted) return;
+
+    final recipe = await showDialog<Recipe>(
+      context: context,
+      builder:
+          (context) => AISearchModal(pantryIngredients: _pantryIngredients),
+    );
+
+    if (recipe != null && mounted) {
+      // Recipe was generated successfully
+      // Refresh pantry ingredients to ensure data is up to date
+      await _loadPantryIngredients();
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Recipe "${recipe.name}" generated successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+
+      // Navigate to recipes list to show the newly generated recipe
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const RecipesListScreen()),
+        );
+      }
+    }
   }
 
   @override
@@ -199,14 +253,7 @@ class _HomeTabState extends State<HomeTab> {
 
                     // Search Bar
                     GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const RecipesListScreen(),
-                          ),
-                        );
-                      },
+                      onTap: _showAISearchModal,
                       child: Container(
                         height: 56,
                         decoration: BoxDecoration(
@@ -228,7 +275,7 @@ class _HomeTabState extends State<HomeTab> {
                             const SizedBox(width: 16),
                             Expanded(
                               child: Text(
-                                'Search recipes, ingredients, or cuisines...',
+                                'Search for AI-generated recipes...',
                                 style: TextStyle(
                                   fontSize: 16,
                                   color: Colors.grey.shade500,
@@ -285,7 +332,8 @@ class _HomeTabState extends State<HomeTab> {
                       crossAxisCount: 3,
                       crossAxisSpacing: 16,
                       mainAxisSpacing: 16,
-                      childAspectRatio: 0.85,
+                      childAspectRatio:
+                          0.75, // Increased from 0.85 to give more height
                       children: quickActions,
                     ),
                   ],
@@ -494,6 +542,7 @@ class _QuickActionCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min, // Add this to prevent overflow
             children: [
               Container(
                 width: 48,
@@ -505,22 +554,33 @@ class _QuickActionCard extends StatelessWidget {
                 child: Icon(icon, color: color, size: 24),
               ),
               const SizedBox(height: 12),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF1A1A1A),
+              Flexible(
+                // Wrap title in Flexible to prevent overflow
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1A1A1A),
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+              Flexible(
+                // Wrap subtitle in Flexible to prevent overflow
+                child: Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF6B7280),
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),

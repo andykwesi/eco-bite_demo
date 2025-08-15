@@ -1,8 +1,9 @@
+// ignore_for_file: unused_field
+
 import 'package:flutter/material.dart';
 import '../models/recipe.dart';
 import '../models/ingredient.dart';
 import '../services/firestore_service.dart';
-import '../services/ai_service.dart';
 import '../widgets/error_dialog.dart';
 
 class RecipeDetailScreen extends StatefulWidget {
