@@ -138,7 +138,17 @@ class _ShoppingListScreenState extends State<ShoppingListScreen>
                 try {
                   setState(() {
                     if (ingredient != null && index != null) {
-                      _shoppingList[index] = newIngredient;
+                      // Create updated ingredient with document ID
+                      final updatedIngredient = Ingredient(
+                        docId: ingredient.docId,
+                        name: newIngredient.name,
+                        isOwned: newIngredient.isOwned,
+                        icon: newIngredient.icon,
+                        expiryDate: newIngredient.expiryDate,
+                        quantity: newIngredient.quantity,
+                        unit: newIngredient.unit,
+                      );
+                      _shoppingList[index] = updatedIngredient;
                     } else {
                       _shoppingList.add(newIngredient);
                     }
@@ -146,12 +156,15 @@ class _ShoppingListScreenState extends State<ShoppingListScreen>
 
                   if (ingredient != null && index != null) {
                     await _firestoreService.updateGroceryItem(
-                      ingredient.name,
+                      ingredient.docId!,
                       newIngredient,
                     );
                   } else {
                     await _firestoreService.addGroceryItem(newIngredient);
                   }
+
+                  // Refresh the grocery list from Firestore
+                  await _fetchGroceryList();
 
                   // Close loading dialog
                   if (mounted) {
@@ -217,12 +230,10 @@ class _ShoppingListScreenState extends State<ShoppingListScreen>
                 await _firestoreService.addPantryItem(pantryIngredient);
 
                 // Remove from grocery list
-                await _firestoreService.deleteGroceryItem(ingredient.name);
+                await _firestoreService.deleteGroceryItem(ingredient.docId!);
 
-                // Update local state
-                setState(() {
-                  _shoppingList.removeAt(index);
-                });
+                // Refresh the grocery list from Firestore to ensure consistency
+                await _fetchGroceryList();
 
                 if (mounted) {
                   Navigator.of(context).pop();
@@ -262,10 +273,11 @@ class _ShoppingListScreenState extends State<ShoppingListScreen>
 
     if (confirm == true) {
       try {
-        await _firestoreService.deleteGroceryItem(ingredient.name);
-        setState(() {
-          _shoppingList.removeAt(index);
-        });
+        await _firestoreService.deleteGroceryItem(ingredient.docId!);
+
+        // Refresh the grocery list from Firestore to ensure consistency
+        await _fetchGroceryList();
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -789,7 +801,8 @@ class _AddGrocerySheetState extends State<_AddGrocerySheet> {
       setState(() {
         _isAdding = false;
       });
-      Navigator.of(context).pop();
+      // Remove this line - let the parent handle navigation
+      // Navigator.of(context).pop();
     }
   }
 

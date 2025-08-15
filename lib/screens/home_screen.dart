@@ -119,9 +119,10 @@ class _HomeTabState extends State<HomeTab> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F8F8),
       body: SafeArea(
-        bottom:
-            false, // Don't add bottom safe area since we're handling it manually
+        bottom: true, // Changed from false to true for better bottom handling
         child: CustomScrollView(
+          physics:
+              const BouncingScrollPhysics(), // Add smooth scrolling physics
           slivers: [
             // Header Section
             SliverToBoxAdapter(
@@ -387,9 +388,13 @@ class _HomeTabState extends State<HomeTab> {
 
             // Bottom Spacing - Account for bottom navigation bar and safe area
             SliverToBoxAdapter(
-              child: Container(
-                height: MediaQuery.of(context).padding.bottom + 160,
-                color: Colors.transparent,
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom:
+                      MediaQuery.of(context).padding.bottom +
+                      20, // Use padding instead of fixed height
+                ),
+                child: const SizedBox.shrink(), // Takes minimal space
               ),
             ),
           ],

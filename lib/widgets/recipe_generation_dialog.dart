@@ -45,6 +45,27 @@ class _RecipeGenerationDialogState extends State<RecipeGenerationDialog> {
       return;
     }
 
+    // Check if AI service is configured
+    if (!AIService.isConfigured) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder:
+              (context) => AlertDialog(
+                title: const Text('AI Service Not Configured'),
+                content: Text(AIService.getConfigurationInstructions()),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('OK'),
+                  ),
+                ],
+              ),
+        );
+      }
+      return;
+    }
+
     setState(() {
       isLoading = true;
     });
@@ -78,7 +99,9 @@ class _RecipeGenerationDialogState extends State<RecipeGenerationDialog> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('No suitable ingredients found in pantry.'),
+              content: Text(
+                'No suitable recipes could be generated. Try adjusting your preferences or adding more ingredients to your pantry.',
+              ),
               backgroundColor: Colors.orange,
             ),
           );
@@ -91,7 +114,11 @@ class _RecipeGenerationDialogState extends State<RecipeGenerationDialog> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Error generating recipe: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
         );
       }
     }
@@ -367,12 +394,116 @@ class _RecipeGenerationDialogState extends State<RecipeGenerationDialog> {
             ),
             const SizedBox(height: 24),
 
+            // Configuration Status
+            GestureDetector(
+              onTap:
+                  !AIService.isConfigured
+                      ? () {
+                        showDialog(
+                          context: context,
+                          builder:
+                              (context) => AlertDialog(
+                                title: const Text('Setup Instructions'),
+                                content: SingleChildScrollView(
+                                  child: Text(
+                                    AIService.getConfigurationInstructions(),
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed:
+                                        () => Navigator.of(context).pop(),
+                                    child: const Text('OK'),
+                                  ),
+                                ],
+                              ),
+                        );
+                      }
+                      : null,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color:
+                      AIService.isConfigured
+                          ? Colors.green.shade50
+                          : Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color:
+                        AIService.isConfigured
+                            ? Colors.green.shade200
+                            : Colors.orange.shade200,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          AIService.isConfigured
+                              ? Icons.check_circle
+                              : Icons.warning,
+                          color:
+                              AIService.isConfigured
+                                  ? Colors.green.shade700
+                                  : Colors.orange.shade700,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          AIService.isConfigured
+                              ? 'AI Service Ready'
+                              : 'AI Service Not Configured',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color:
+                                AIService.isConfigured
+                                    ? Colors.green.shade700
+                                    : Colors.orange.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      AIService.getConfigurationStatus(),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color:
+                            AIService.isConfigured
+                                ? Colors.green.shade600
+                                : Colors.orange.shade600,
+                      ),
+                    ),
+                    if (!AIService.isConfigured) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'Tap here for setup instructions',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.orange.shade600,
+                          fontStyle: FontStyle.italic,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
             // Generate Button
             SizedBox(
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
-                onPressed: isLoading ? null : _generateRecipe,
+                onPressed:
+                    (isLoading || !AIService.isConfigured)
+                        ? null
+                        : _generateRecipe,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF4CAF50),
                   foregroundColor: Colors.white,
@@ -393,6 +524,15 @@ class _RecipeGenerationDialogState extends State<RecipeGenerationDialog> {
                             color: Colors.white,
                             strokeWidth: 2,
                           ),
+                        )
+                        : !AIService.isConfigured
+                        ? const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.lock, size: 20),
+                            SizedBox(width: 8),
+                            Text('Configure AI Service First'),
+                          ],
                         )
                         : const Row(
                           mainAxisAlignment: MainAxisAlignment.center,

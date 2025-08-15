@@ -5,13 +5,27 @@ import '../models/recipe.dart';
 import '../models/ingredient.dart';
 
 class AIService {
+  static bool get isConfigured {
+    try {
+      final apiKey = dotenv.env['OPENAI_API_KEY'];
+      return apiKey != null &&
+          apiKey.isNotEmpty &&
+          apiKey != 'placeholder_api_key_for_development';
+    } catch (e) {
+      return false;
+    }
+  }
+
   static String get _apiKey {
     final apiKey = dotenv.env['OPENAI_API_KEY'];
-    if (apiKey == null ||
-        apiKey.isEmpty ||
-        apiKey == 'placeholder_api_key_for_development') {
+    if (apiKey == null || apiKey.isEmpty) {
       throw Exception(
         'OpenAI API key not configured. Please add your API key to the .env file.',
+      );
+    }
+    if (apiKey == 'placeholder_api_key_for_development') {
+      throw Exception(
+        'Please configure your OpenAI API key in the .env file. Get your API key from https://platform.openai.com/api-keys',
       );
     }
     return apiKey;
@@ -447,6 +461,28 @@ Please provide a realistic food photography URL.
       print('Error generating recipe image: $e');
       // Return fallback image
       return 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop';
+    }
+  }
+
+  static String getConfigurationInstructions() {
+    return '''
+To enable AI recipe generation, you need to configure your OpenAI API key:
+
+1. Get your API key from https://platform.openai.com/api-keys
+2. Create a .env file in your project root
+3. Add this line to the .env file:
+   OPENAI_API_KEY=your_actual_api_key_here
+4. Restart the app
+
+Note: The API key is required for AI-powered recipe generation features.
+''';
+  }
+
+  static String getConfigurationStatus() {
+    if (isConfigured) {
+      return '✅ AI service is properly configured';
+    } else {
+      return '❌ AI service is not configured. Please add your OpenAI API key.';
     }
   }
 }

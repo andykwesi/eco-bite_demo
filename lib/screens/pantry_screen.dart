@@ -131,7 +131,17 @@ class _PantryScreenState extends State<PantryScreen>
                 try {
                   setState(() {
                     if (ingredient != null && index != null) {
-                      _ingredients[index] = newIngredient;
+                      // Create updated ingredient with document ID
+                      final updatedIngredient = Ingredient(
+                        docId: ingredient.docId,
+                        name: newIngredient.name,
+                        isOwned: newIngredient.isOwned,
+                        icon: newIngredient.icon,
+                        expiryDate: newIngredient.expiryDate,
+                        quantity: newIngredient.quantity,
+                        unit: newIngredient.unit,
+                      );
+                      _ingredients[index] = updatedIngredient;
                     } else {
                       _ingredients.add(newIngredient);
                     }
@@ -139,8 +149,8 @@ class _PantryScreenState extends State<PantryScreen>
 
                   if (ingredient != null && index != null) {
                     await _firestoreService.updatePantryItem(
-                      ingredient.name,
-                      newIngredient,
+                      ingredient.docId!,
+                      _ingredients[index], // Use the updated ingredient from local state
                     );
                   } else {
                     await _firestoreService.addPantryItem(newIngredient);
@@ -355,17 +365,36 @@ class _PantryScreenState extends State<PantryScreen>
                                     icon: Icons.delete,
                                   );
                                   if (confirm == true) {
-                                    setState(() {
-                                      _ingredients.removeAt(index);
-                                    });
-                                    await showCustomInfoDialog(
-                                      context: context,
-                                      title: 'Deleted',
-                                      message:
-                                          'Ingredient deleted successfully.',
-                                      icon: Icons.check_circle,
-                                    );
-                                    return true;
+                                    try {
+                                      // Delete from database first
+                                      if (ingredient.docId != null) {
+                                        await _firestoreService.deletePantryItem(ingredient.docId!);
+                                      }
+                                      
+                                      // Then remove from local state
+                                      setState(() {
+                                        _ingredients.removeAt(index);
+                                      });
+                                      
+                                      await showCustomInfoDialog(
+                                        context: context,
+                                        title: 'Deleted',
+                                        message:
+                                            'Ingredient deleted successfully.',
+                                        icon: Icons.check_circle,
+                                      );
+                                      return true;
+                                    } catch (e) {
+                                      // Show error if deletion failed
+                                      await showCustomInfoDialog(
+                                        context: context,
+                                        title: 'Error',
+                                        message: 'Failed to delete ingredient: $e',
+                                        icon: Icons.error,
+                                        isDestructive: true,
+                                      );
+                                      return false;
+                                    }
                                   }
                                   return false;
                                 }
@@ -379,13 +408,39 @@ class _PantryScreenState extends State<PantryScreen>
                                     builder:
                                         (context) => _IngredientDetailsDialog(
                                           ingredient: ingredient,
-                                          onDelete: () {
-                                            setState(() {
-                                              _ingredients.removeWhere(
-                                                (i) =>
-                                                    i.name == ingredient.name,
+                                          onDelete: () async {
+                                            try {
+                                              // Delete from database first
+                                              if (ingredient.docId != null) {
+                                                await _firestoreService.deletePantryItem(ingredient.docId!);
+                                              }
+                                              
+                                              // Then remove from local state
+                                              setState(() {
+                                                _ingredients.removeWhere(
+                                                  (i) => i.docId == ingredient.docId,
+                                                );
+                                              });
+                                              
+                                              // Close the dialog
+                                              Navigator.of(context).pop();
+                                              
+                                              // Show success message
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text('Ingredient deleted successfully!'),
+                                                  backgroundColor: Colors.green,
+                                                ),
                                               );
-                                            });
+                                            } catch (e) {
+                                              // Show error if deletion failed
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(
+                                                  content: Text('Failed to delete ingredient: $e'),
+                                                  backgroundColor: Colors.red,
+                                                ),
+                                              );
+                                            }
                                           },
                                         ),
                                   );

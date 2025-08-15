@@ -74,7 +74,9 @@ class FirestoreService {
 
   Future<List<Ingredient>> fetchGroceryList() async {
     final snapshot = await _groceryRef.get();
-    return snapshot.docs.map((doc) => Ingredient.fromMap(doc.data())).toList();
+    return snapshot.docs
+        .map((doc) => Ingredient.fromMap(doc.data(), docId: doc.id))
+        .toList();
   }
 
   Future<void> addGroceryItem(Ingredient ingredient) async {
@@ -95,7 +97,9 @@ class FirestoreService {
 
   Future<List<Ingredient>> fetchPantry() async {
     final snapshot = await _pantryRef.get();
-    return snapshot.docs.map((doc) => Ingredient.fromMap(doc.data())).toList();
+    return snapshot.docs
+        .map((doc) => Ingredient.fromMap(doc.data(), docId: doc.id))
+        .toList();
   }
 
   Future<void> addPantryItem(Ingredient ingredient) async {

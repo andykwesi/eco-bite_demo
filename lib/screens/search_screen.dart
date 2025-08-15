@@ -67,13 +67,36 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Future<void> _generateRecipeFromSearch() async {
+    // Check if AI service is configured
+    if (!AIService.isConfigured) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder:
+              (context) => AlertDialog(
+                title: const Text('AI Service Not Configured'),
+                content: Text(AIService.getConfigurationInstructions()),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('OK'),
+                  ),
+                ],
+              ),
+        );
+      }
+      return;
+    }
+
     if (_searchController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a search query'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enter a search query'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
       return;
     }
 
@@ -111,7 +134,9 @@ class _SearchScreenState extends State<SearchScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Failed to generate recipe. Please try again.'),
+              content: Text(
+                'Failed to generate recipe. Please try again with different search terms or preferences.',
+              ),
               backgroundColor: Colors.red,
             ),
           );
@@ -120,7 +145,11 @@ class _SearchScreenState extends State<SearchScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Error generating recipe: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
         );
       }
     } finally {
@@ -133,6 +162,27 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Future<void> _generateRecipeFromPantry() async {
+    // Check if AI service is configured
+    if (!AIService.isConfigured) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder:
+              (context) => AlertDialog(
+                title: const Text('AI Service Not Configured'),
+                content: Text(AIService.getConfigurationInstructions()),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('OK'),
+                  ),
+                ],
+              ),
+        );
+      }
+      return;
+    }
+
     setState(() {
       _isGenerating = true;
     });
@@ -166,7 +216,9 @@ class _SearchScreenState extends State<SearchScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('No suitable ingredients found in pantry.'),
+              content: Text(
+                'No suitable recipes could be generated. Try adjusting your preferences or adding more ingredients to your pantry.',
+              ),
               backgroundColor: Colors.orange,
             ),
           );
@@ -175,7 +227,11 @@ class _SearchScreenState extends State<SearchScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Error generating recipe: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
         );
       }
     } finally {

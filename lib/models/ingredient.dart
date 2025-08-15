@@ -1,4 +1,5 @@
 class Ingredient {
+  final String? docId; // Add document ID field
   final String name;
   final bool isOwned;
   final String? icon;
@@ -7,6 +8,7 @@ class Ingredient {
   final String? unit;
 
   Ingredient({
+    this.docId, // Make docId optional
     required this.name,
     this.isOwned = false,
     this.icon,
@@ -16,6 +18,7 @@ class Ingredient {
   }) {
     // Debug logging
     print('DEBUG: Creating Ingredient: $name');
+    print('DEBUG: - Document ID: $docId');
     print('DEBUG: - Is owned: $isOwned');
     print('DEBUG: - Quantity: $quantity');
     print('DEBUG: - Unit: $unit');
@@ -44,11 +47,13 @@ class Ingredient {
     return "Expires in $daysUntilExpiry days";
   }
 
-  factory Ingredient.fromMap(Map<String, dynamic> map) {
+  factory Ingredient.fromMap(Map<String, dynamic> map, {String? docId}) {
     try {
       print('DEBUG: Creating Ingredient from map: ${map['name']}');
+      print('DEBUG: Document ID: $docId');
 
       final ingredient = Ingredient(
+        docId: docId, // Include document ID
         name: map['name'] ?? 'Unknown Ingredient',
         isOwned: map['isOwned'] ?? false,
         icon: map['icon'],
