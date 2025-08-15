@@ -7,6 +7,7 @@ import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'services/ai_service.dart';
 
 void main() async {
   try {
@@ -24,6 +25,12 @@ void main() async {
         print('DEBUG: API key length: ${apiKey.length}');
         print(
           'DEBUG: API key starts with: ${apiKey.substring(0, apiKey.length > 20 ? 20 : apiKey.length)}',
+        );
+
+        // Test AI service configuration
+        print('DEBUG: AI Service configured: ${AIService.isConfigured}');
+        print(
+          'DEBUG: AI Service status: ${AIService.getConfigurationStatus()}',
         );
       }
     } catch (e) {

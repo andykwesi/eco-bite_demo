@@ -17,14 +17,14 @@ class AIService {
           'DEBUG: API key starts with: ${apiKey.substring(0, min(20, apiKey.length))}',
         );
         print(
-          'DEBUG: API key is placeholder: ${apiKey == 'placeholder_api_key_for_development'}',
+          'DEBUG: API key is placeholder: ${apiKey == 'your_openai_api_key_here'}',
         );
       }
 
       final isConfigured =
           apiKey != null &&
           apiKey.isNotEmpty &&
-          apiKey != 'placeholder_api_key_for_development';
+          apiKey != 'your_openai_api_key_here';
 
       print('DEBUG: AIService isConfigured: $isConfigured');
       return isConfigured;
@@ -41,7 +41,7 @@ class AIService {
         'OpenAI API key not configured. Please add your API key to the .env file.',
       );
     }
-    if (apiKey == 'placeholder_api_key_for_development') {
+    if (apiKey == 'your_openai_api_key_here') {
       throw Exception(
         'Please configure your OpenAI API key in the .env file. Get your API key from https://platform.openai.com/api-keys',
       );
@@ -51,6 +51,7 @@ class AIService {
 
   static const String _baseUrl = "https://api.openai.com/v1/chat/completions";
 
+  /// Generate a recipe based on available ingredients
   static Future<Recipe?> generateRecipe({
     required List<Ingredient> availableIngredients,
     String? cuisineType,
@@ -67,38 +68,53 @@ class AIService {
           .join(', ');
 
       final prompt = '''
-Generate a recipe based on the following requirements:
+You are a professional chef and recipe creator. Generate a delicious, creative recipe based on the following requirements:
 
-Available ingredients: $availableIngredientNames
-Cuisine type: ${cuisineType ?? 'Any'}
-Dietary restrictions: ${dietaryRestriction ?? 'None'}
-Servings: $servings
-Maximum cooking time: $maxCookingTime minutes
+AVAILABLE INGREDIENTS: $availableIngredientNames
+CUISINE TYPE: ${cuisineType ?? 'Any'}
+DIETARY RESTRICTIONS: ${dietaryRestriction ?? 'None'}
+SERVINGS: $servings
+MAXIMUM COOKING TIME: $maxCookingTime minutes
 
-Please provide the recipe in the following JSON format:
+REQUIREMENTS:
+1. Use at least 70% of the available ingredients
+2. Add only 2-3 additional ingredients if absolutely necessary
+3. Ensure the recipe is practical and achievable
+4. Make it delicious and creative
+5. Follow the exact JSON format below
+
+RESPONSE FORMAT (JSON only, no additional text):
 {
-  "name": "Recipe Name",
-  "imageUrl": "https://example.com/placeholder-image.jpg",
+  "name": "Creative Recipe Name",
+  "imageUrl": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop",
   "ingredients": [
     {
       "name": "Ingredient Name",
-      "isOwned": true/false,
+      "isOwned": true,
       "quantity": 1.0,
       "unit": "cup"
     }
   ],
   "cookingTimeMinutes": 30,
-  "servings": 4,
+  "servings": $servings,
   "source": "AI Generated",
   "instructions": [
-    "Step 1 instruction",
-    "Step 2 instruction"
+    "Step 1: Detailed instruction",
+    "Step 2: Detailed instruction",
+    "Step 3: Detailed instruction"
   ],
   "category": "Main",
-  "isFast": false
+  "isFast": false,
+  "difficulty": "Easy",
+  "nutrition": {
+    "calories": 350,
+    "protein": "15g",
+    "carbs": "45g",
+    "fat": "12g"
+  }
 }
 
-Make sure the recipe is creative, delicious, and uses mostly the available ingredients. Add a few additional ingredients if needed to make the recipe complete.
+IMPORTANT: Return ONLY valid JSON. No markdown formatting, no explanations, just the JSON object.
 ''';
 
       print('DEBUG: Sending request to OpenAI...');
@@ -110,12 +126,18 @@ Make sure the recipe is creative, delicious, and uses mostly the available ingre
           'Authorization': 'Bearer $_apiKey',
         },
         body: jsonEncode({
-          'model': 'gpt-3.5-turbo',
+          'model': 'gpt-4',
           'messages': [
+            {
+              'role': 'system',
+              'content':
+                  'You are a professional chef and recipe creator. Always respond with valid JSON only.',
+            },
             {'role': 'user', 'content': prompt},
           ],
-          'max_tokens': 1000,
-          'temperature': 0.8,
+          'max_tokens': 1500,
+          'temperature': 0.7,
+          'top_p': 0.9,
         }),
       );
 
@@ -133,39 +155,56 @@ Make sure the recipe is creative, delicious, and uses mostly the available ingre
 
         if (jsonStart != -1 && jsonEnd != -1) {
           final jsonString = content.substring(jsonStart, jsonEnd);
-          final recipeData = jsonDecode(jsonString);
 
-          print('DEBUG: Recipe data extracted successfully');
+          try {
+            final recipeData = jsonDecode(jsonString);
+            print('DEBUG: Recipe data extracted successfully');
 
-          // Convert ingredients to Ingredient objects
-          final ingredients =
-              (recipeData['ingredients'] as List)
-                  .map((ingredient) => Ingredient.fromMap(ingredient))
-                  .toList();
+            // Convert ingredients to Ingredient objects
+            final ingredients =
+                (recipeData['ingredients'] as List)
+                    .map((ingredient) => Ingredient.fromMap(ingredient))
+                    .toList();
 
-          final recipe = Recipe(
-            name: recipeData['name'],
-            imageUrl: recipeData['imageUrl'],
-            ingredients: ingredients,
-            cookingTimeMinutes: recipeData['cookingTimeMinutes'],
-            servings: recipeData['servings'],
-            source: recipeData['source'],
-            instructions: List<String>.from(recipeData['instructions']),
-            category: recipeData['category'] ?? 'Main',
-            isFast: recipeData['isFast'] ?? false,
-          );
+            final recipe = Recipe(
+              name: recipeData['name'] ?? 'AI Generated Recipe',
+              imageUrl:
+                  recipeData['imageUrl'] ??
+                  'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop',
+              ingredients: ingredients,
+              cookingTimeMinutes: recipeData['cookingTimeMinutes'] ?? 30,
+              servings: recipeData['servings'] ?? servings,
+              source: recipeData['source'] ?? 'AI Generated',
+              instructions: List<String>.from(
+                recipeData['instructions'] ?? ['Mix ingredients and cook'],
+              ),
+              category: recipeData['category'] ?? 'Main',
+              isFast: recipeData['isFast'] ?? false,
+            );
 
-          print('DEBUG: Recipe created successfully: ${recipe.name}');
-          return recipe;
+            print('DEBUG: Recipe created successfully: ${recipe.name}');
+            return recipe;
+          } catch (jsonError) {
+            print('DEBUG: JSON parsing error: $jsonError');
+            print('DEBUG: Raw JSON string: $jsonString');
+            throw Exception(
+              'Invalid JSON response from AI service: $jsonError',
+            );
+          }
         } else {
           print('DEBUG: Failed to extract JSON from response');
-          throw Exception('Invalid response format from AI service');
+          print('DEBUG: Response content: $content');
+          throw Exception(
+            'Invalid response format from AI service - no JSON found',
+          );
         }
       } else {
         print(
           'DEBUG: OpenAI API error: ${response.statusCode} - ${response.body}',
         );
-        throw Exception('Failed to generate recipe: ${response.statusCode}');
+        throw Exception(
+          'Failed to generate recipe: HTTP ${response.statusCode}',
+        );
       }
     } catch (e) {
       print('DEBUG: Error in generateRecipe: $e');
@@ -173,6 +212,7 @@ Make sure the recipe is creative, delicious, and uses mostly the available ingre
     }
   }
 
+  /// Generate a recipe based on search query
   static Future<Recipe?> generateRecipeFromSearch({
     required String searchQuery,
     required List<Ingredient> availableIngredients,
@@ -182,45 +222,63 @@ Make sure the recipe is creative, delicious, and uses mostly the available ingre
     int maxCookingTime = 60,
   }) async {
     try {
+      print('DEBUG: Starting search-based recipe generation...');
+
       final availableIngredientNames = availableIngredients
           .where((ingredient) => ingredient.isOwned)
           .map((ingredient) => ingredient.name)
           .join(', ');
 
       final prompt = '''
-Generate a recipe based on the following search query and requirements:
+You are a professional chef and recipe creator. Generate a delicious recipe based on this search query and available ingredients:
 
-Search query: $searchQuery
-Available ingredients: $availableIngredientNames
-Cuisine type: ${cuisineType ?? 'Any'}
-Dietary restrictions: ${dietaryRestriction ?? 'None'}
-Servings: $servings
-Maximum cooking time: $maxCookingTime minutes
+SEARCH QUERY: "$searchQuery"
+AVAILABLE INGREDIENTS: $availableIngredientNames
+CUISINE TYPE: ${cuisineType ?? 'Any'}
+DIETARY RESTRICTIONS: ${dietaryRestriction ?? 'None'}
+SERVINGS: $servings
+MAXIMUM COOKING TIME: $maxCookingTime minutes
 
-Please provide the recipe in the following JSON format:
+REQUIREMENTS:
+1. The recipe should match the search query
+2. Use at least 60% of available ingredients
+3. Add only 3-4 additional ingredients if needed
+4. Ensure the recipe is practical and achievable
+5. Make it delicious and creative
+6. Follow the exact JSON format below
+
+RESPONSE FORMAT (JSON only, no additional text):
 {
-  "name": "Recipe Name",
-  "imageUrl": "https://example.com/placeholder-image.jpg",
+  "name": "Recipe Name Based on Search",
+  "imageUrl": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop",
   "ingredients": [
     {
       "name": "Ingredient Name",
-      "isOwned": true/false,
+      "isOwned": true,
       "quantity": 1.0,
       "unit": "cup"
     }
   ],
   "cookingTimeMinutes": 30,
-  "servings": 4,
+  "servings": $servings,
   "source": "AI Generated from Search",
   "instructions": [
-    "Step 1 instruction",
-    "Step 2 instruction"
+    "Step 1: Detailed instruction",
+    "Step 2: Detailed instruction",
+    "Step 3: Detailed instruction"
   ],
   "category": "Main",
-  "isFast": false
+  "isFast": false,
+  "difficulty": "Easy",
+  "nutrition": {
+    "calories": 350,
+    "protein": "15g",
+    "carbs": "45g",
+    "fat": "12g"
+  }
 }
 
-Make sure the recipe is creative, delicious, incorporates the search query, and uses mostly the available ingredients. Add a few additional ingredients if needed to make the recipe complete.
+IMPORTANT: Return ONLY valid JSON. No markdown formatting, no explanations, just the JSON object.
 ''';
 
       final response = await http.post(
@@ -230,12 +288,18 @@ Make sure the recipe is creative, delicious, incorporates the search query, and 
           'Authorization': 'Bearer $_apiKey',
         },
         body: jsonEncode({
-          'model': 'gpt-3.5-turbo',
+          'model': 'gpt-4',
           'messages': [
+            {
+              'role': 'system',
+              'content':
+                  'You are a professional chef and recipe creator. Always respond with valid JSON only.',
+            },
             {'role': 'user', 'content': prompt},
           ],
-          'max_tokens': 1000,
+          'max_tokens': 1500,
           'temperature': 0.8,
+          'top_p': 0.9,
         }),
       );
 
@@ -249,25 +313,35 @@ Make sure the recipe is creative, delicious, incorporates the search query, and 
 
         if (jsonStart != -1 && jsonEnd != -1) {
           final jsonString = content.substring(jsonStart, jsonEnd);
-          final recipeData = jsonDecode(jsonString);
 
-          // Convert ingredients to Ingredient objects
-          final ingredients =
-              (recipeData['ingredients'] as List)
-                  .map((ingredient) => Ingredient.fromMap(ingredient))
-                  .toList();
+          try {
+            final recipeData = jsonDecode(jsonString);
 
-          return Recipe(
-            name: recipeData['name'],
-            imageUrl: recipeData['imageUrl'],
-            ingredients: ingredients,
-            cookingTimeMinutes: recipeData['cookingTimeMinutes'],
-            servings: recipeData['servings'],
-            source: recipeData['source'],
-            instructions: List<String>.from(recipeData['instructions']),
-            category: recipeData['category'] ?? 'Main',
-            isFast: recipeData['isFast'] ?? false,
-          );
+            // Convert ingredients to Ingredient objects
+            final ingredients =
+                (recipeData['ingredients'] as List)
+                    .map((ingredient) => Ingredient.fromMap(ingredient))
+                    .toList();
+
+            return Recipe(
+              name: recipeData['name'] ?? 'AI Generated Recipe',
+              imageUrl:
+                  recipeData['imageUrl'] ??
+                  'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop',
+              ingredients: ingredients,
+              cookingTimeMinutes: recipeData['cookingTimeMinutes'] ?? 30,
+              servings: recipeData['servings'] ?? servings,
+              source: recipeData['source'] ?? 'AI Generated from Search',
+              instructions: List<String>.from(
+                recipeData['instructions'] ?? ['Mix ingredients and cook'],
+              ),
+              category: recipeData['category'] ?? 'Main',
+              isFast: recipeData['isFast'] ?? false,
+            );
+          } catch (jsonError) {
+            print('DEBUG: JSON parsing error in search generation: $jsonError');
+            return null;
+          }
         }
       }
 
@@ -278,6 +352,7 @@ Make sure the recipe is creative, delicious, incorporates the search query, and 
     }
   }
 
+  /// Generate a recipe from pantry ingredients
   static Future<Recipe?> generateRecipeFromPantry({
     required List<Ingredient> pantryIngredients,
     String? cuisineType,
@@ -286,6 +361,8 @@ Make sure the recipe is creative, delicious, incorporates the search query, and 
     int maxCookingTime = 60,
   }) async {
     try {
+      print('DEBUG: Starting pantry-based recipe generation...');
+
       // Filter out expired ingredients and get available ones
       final availableIngredients =
           pantryIngredients
@@ -295,6 +372,7 @@ Make sure the recipe is creative, delicious, incorporates the search query, and 
               .toList();
 
       if (availableIngredients.isEmpty) {
+        print('DEBUG: No available ingredients in pantry');
         return null;
       }
 
@@ -303,40 +381,54 @@ Make sure the recipe is creative, delicious, incorporates the search query, and 
           .join(', ');
 
       final prompt = '''
-Generate a recipe that maximizes the use of these pantry ingredients:
+You are a professional chef and recipe creator. Generate a delicious recipe that maximizes the use of these pantry ingredients:
 
-Available ingredients: $ingredientNames
-Cuisine type: ${cuisineType ?? 'Any'}
-Dietary restrictions: ${dietaryRestriction ?? 'None'}
-Servings: $servings
-Maximum cooking time: $maxCookingTime minutes
+AVAILABLE INGREDIENTS: $ingredientNames
+CUISINE TYPE: ${cuisineType ?? 'Any'}
+DIETARY RESTRICTIONS: ${dietaryRestriction ?? 'None'}
+SERVINGS: $servings
+MAXIMUM COOKING TIME: $maxCookingTime minutes
 
-IMPORTANT: Prioritize using the available ingredients. Only suggest 1-2 additional ingredients if absolutely necessary for the recipe to work.
+REQUIREMENTS:
+1. Use at least 80% of the available ingredients
+2. Add only 1-2 additional ingredients if absolutely necessary
+3. Ensure the recipe is practical and achievable
+4. Make it delicious and creative
+5. The recipe should be a complete meal
+6. Follow the exact JSON format below
 
-Please provide the recipe in the following JSON format:
+RESPONSE FORMAT (JSON only, no additional text):
 {
-  "name": "Recipe Name",
-  "imageUrl": "https://example.com/placeholder-image.jpg",
+  "name": "Creative Recipe Using Pantry Ingredients",
+  "imageUrl": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop",
   "ingredients": [
     {
       "name": "Ingredient Name",
-      "isOwned": true/false,
+      "isOwned": true,
       "quantity": 1.0,
       "unit": "cup"
     }
   ],
   "cookingTimeMinutes": 30,
-  "servings": 4,
+  "servings": $servings,
   "source": "AI Generated from Pantry",
   "instructions": [
-    "Step 1 instruction",
-    "Step 2 instruction"
+    "Step 1: Detailed instruction",
+    "Step 2: Detailed instruction",
+    "Step 3: Detailed instruction"
   ],
   "category": "Main",
-  "isFast": false
+  "isFast": false,
+  "difficulty": "Easy",
+  "nutrition": {
+    "calories": 350,
+    "protein": "15g",
+    "carbs": "45g",
+    "fat": "12g"
+  }
 }
 
-Make sure the recipe is creative, delicious, and uses at least 80% of the available ingredients. The recipe should be practical and achievable with what's in the pantry.
+IMPORTANT: Return ONLY valid JSON. No markdown formatting, no explanations, just the JSON object.
 ''';
 
       final response = await http.post(
@@ -346,12 +438,18 @@ Make sure the recipe is creative, delicious, and uses at least 80% of the availa
           'Authorization': 'Bearer $_apiKey',
         },
         body: jsonEncode({
-          'model': 'gpt-3.5-turbo',
+          'model': 'gpt-4',
           'messages': [
+            {
+              'role': 'system',
+              'content':
+                  'You are a professional chef and recipe creator. Always respond with valid JSON only.',
+            },
             {'role': 'user', 'content': prompt},
           ],
-          'max_tokens': 1000,
-          'temperature': 0.8,
+          'max_tokens': 1500,
+          'temperature': 0.7,
+          'top_p': 0.9,
         }),
       );
 
@@ -365,25 +463,35 @@ Make sure the recipe is creative, delicious, and uses at least 80% of the availa
 
         if (jsonStart != -1 && jsonEnd != -1) {
           final jsonString = content.substring(jsonStart, jsonEnd);
-          final recipeData = jsonDecode(jsonString);
 
-          // Convert ingredients to Ingredient objects
-          final ingredients =
-              (recipeData['ingredients'] as List)
-                  .map((ingredient) => Ingredient.fromMap(ingredient))
-                  .toList();
+          try {
+            final recipeData = jsonDecode(jsonString);
 
-          return Recipe(
-            name: recipeData['name'],
-            imageUrl: recipeData['imageUrl'],
-            ingredients: ingredients,
-            cookingTimeMinutes: recipeData['cookingTimeMinutes'],
-            servings: recipeData['servings'],
-            source: recipeData['source'],
-            instructions: List<String>.from(recipeData['instructions']),
-            category: recipeData['category'] ?? 'Main',
-            isFast: recipeData['isFast'] ?? false,
-          );
+            // Convert ingredients to Ingredient objects
+            final ingredients =
+                (recipeData['ingredients'] as List)
+                    .map((ingredient) => Ingredient.fromMap(ingredient))
+                    .toList();
+
+            return Recipe(
+              name: recipeData['name'] ?? 'AI Generated Recipe',
+              imageUrl:
+                  recipeData['imageUrl'] ??
+                  'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop',
+              ingredients: ingredients,
+              cookingTimeMinutes: recipeData['cookingTimeMinutes'] ?? 30,
+              servings: recipeData['servings'] ?? servings,
+              source: recipeData['source'] ?? 'AI Generated from Pantry',
+              instructions: List<String>.from(
+                recipeData['instructions'] ?? ['Mix ingredients and cook'],
+              ),
+              category: recipeData['category'] ?? 'Main',
+              isFast: recipeData['isFast'] ?? false,
+            );
+          } catch (jsonError) {
+            print('DEBUG: JSON parsing error in pantry generation: $jsonError');
+            return null;
+          }
         }
       }
 
@@ -394,6 +502,7 @@ Make sure the recipe is creative, delicious, and uses at least 80% of the availa
     }
   }
 
+  /// Get available cuisine types
   static Future<List<String>> getCuisineTypes() async {
     return [
       'Italian',
@@ -415,10 +524,15 @@ Make sure the recipe is creative, delicious, and uses at least 80% of the availa
       'Ethiopian',
       'Caribbean',
       'African',
+      'Middle Eastern',
+      'Asian Fusion',
+      'Latin American',
+      'European',
       'Any',
     ];
   }
 
+  /// Get available dietary restrictions
   static Future<List<String>> getDietaryRestrictions() async {
     return [
       'None',
@@ -433,15 +547,28 @@ Make sure the recipe is creative, delicious, and uses at least 80% of the availa
       'Kosher',
       'Nut-Free',
       'Seafood-Free',
+      'Low-Sodium',
+      'Low-Fat',
+      'High-Protein',
+      'Low-Calorie',
+      'Diabetic-Friendly',
+      'Heart-Healthy',
     ];
   }
 
+  /// Generate a recipe image using AI
   static Future<String?> generateRecipeImage(String recipeName) async {
     try {
       final prompt = '''
 Generate a beautiful, appetizing food image for this recipe: $recipeName
-The image should be high quality, well-lit, and showcase the dish in an appealing way.
-Please provide a realistic food photography URL.
+
+The image should be:
+- High quality and well-lit
+- Showcase the dish in an appealing way
+- Professional food photography style
+- Suitable for a recipe app
+
+Please provide a realistic, high-quality food photography URL.
 ''';
 
       final response = await http.post(
@@ -451,8 +578,13 @@ Please provide a realistic food photography URL.
           'Authorization': 'Bearer $_apiKey',
         },
         body: jsonEncode({
-          'model': 'gpt-3.5-turbo',
+          'model': 'gpt-4',
           'messages': [
+            {
+              'role': 'system',
+              'content':
+                  'You are a food photography expert. Provide only image URLs.',
+            },
             {'role': 'user', 'content': prompt},
           ],
           'max_tokens': 200,
@@ -482,6 +614,7 @@ Please provide a realistic food photography URL.
     }
   }
 
+  /// Get configuration instructions for users
   static String getConfigurationInstructions() {
     return '''
 To enable AI recipe generation, you need to configure your OpenAI API key:
@@ -496,11 +629,41 @@ Note: The API key is required for AI-powered recipe generation features.
 ''';
   }
 
+  /// Get current configuration status
   static String getConfigurationStatus() {
     if (isConfigured) {
-      return '✅ AI service is properly configured';
+      return '✅ AI service is properly configured and ready to generate recipes';
     } else {
-      return '❌ AI service is not configured. Please add your OpenAI API key.';
+      return '❌ AI service is not configured. Please add your OpenAI API key to the .env file.';
+    }
+  }
+
+  /// Test the API connection
+  static Future<bool> testConnection() async {
+    try {
+      if (!isConfigured) {
+        return false;
+      }
+
+      final response = await http.post(
+        Uri.parse(_baseUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_apiKey',
+        },
+        body: jsonEncode({
+          'model': 'gpt-3.5-turbo',
+          'messages': [
+            {'role': 'user', 'content': 'Hello'},
+          ],
+          'max_tokens': 10,
+        }),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Connection test failed: $e');
+      return false;
     }
   }
 }
