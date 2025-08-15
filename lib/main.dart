@@ -9,27 +9,47 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  // Load environment variables
-  await dotenv.load(fileName: ".env");
-
   try {
-    if (Firebase.apps.isEmpty) {
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
+    WidgetsFlutterBinding.ensureInitialized();
+
+    // Load environment variables (optional - only if .env file exists)
+    try {
+      await dotenv.load(fileName: ".env");
+      print('Environment variables loaded successfully');
+    } catch (e) {
+      print(
+        'Warning: .env file not found. Some features may not work without proper configuration.',
       );
+      // Continue without environment variables
     }
-  } catch (e) {
-    if (e is FirebaseException && e.code == 'duplicate-app') {
-      // Already initialized, ignore
-    } else {
-      rethrow;
+
+    try {
+      if (Firebase.apps.isEmpty) {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+        print('Firebase initialized successfully');
+      }
+    } catch (e) {
+      if (e is FirebaseException && e.code == 'duplicate-app') {
+        // Already initialized, ignore
+        print('Firebase already initialized');
+      } else {
+        print('Firebase initialization error: $e');
+        rethrow;
+      }
     }
+
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    AuthService().init();
+    print('App initialization completed successfully');
+    runApp(const EcoBiteApp());
+  } catch (e, stackTrace) {
+    print('Fatal error during app initialization: $e');
+    print('Stack trace: $stackTrace');
+    // Show a simple error screen instead of crashing
+    runApp(const ErrorApp());
   }
-  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-  AuthService().init();
-  runApp(const EcoBiteApp());
 }
 
 class EcoBiteApp extends StatefulWidget {
@@ -172,6 +192,65 @@ class SplashScreen extends StatelessWidget {
               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// Error app to show when initialization fails
+class ErrorApp extends StatelessWidget {
+  const ErrorApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'EcoBite - Error',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.red),
+        useMaterial3: true,
+      ),
+      home: Scaffold(
+        backgroundColor: Colors.red[50],
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline, size: 80, color: Colors.red[600]),
+                const SizedBox(height: 24),
+                Text(
+                  'App Initialization Failed',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red[800],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'The app encountered an error during startup. Please check the console for more details and try restarting the app.',
+                  style: TextStyle(fontSize: 16, color: Colors.red[700]),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () {
+                    // Try to restart the app
+                    main();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red[600],
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Restart App'),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

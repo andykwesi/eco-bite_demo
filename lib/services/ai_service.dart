@@ -7,8 +7,12 @@ import '../models/ingredient.dart';
 class AIService {
   static String get _apiKey {
     final apiKey = dotenv.env['OPENAI_API_KEY'];
-    if (apiKey == null || apiKey.isEmpty) {
-      throw Exception('OpenAI API key not found in environment variables');
+    if (apiKey == null ||
+        apiKey.isEmpty ||
+        apiKey == 'placeholder_api_key_for_development') {
+      throw Exception(
+        'OpenAI API key not configured. Please add your API key to the .env file.',
+      );
     }
     return apiKey;
   }

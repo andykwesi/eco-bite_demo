@@ -28,7 +28,7 @@ class _RecipesListScreenState extends State<RecipesListScreen>
   bool _isGenerating = false;
   String? _error;
   String _searchQuery = '';
-  int _selectedTabIndex = 0;
+
   bool _isBannerMinimized = false;
 
   String? selectedCuisineType;
@@ -1168,28 +1168,26 @@ class _RecipesListScreenState extends State<RecipesListScreen>
               ),
             ],
 
-            // Tab Bar
+            // Single "All Recipes" tab - no more AI Generated tab
             if (_searchQuery.isEmpty) ...[
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _buildTabButton(
-                        label: 'All Recipes',
-                        isSelected: _selectedTabIndex == 0,
-                        onTap: () => setState(() => _selectedTabIndex = 0),
-                      ),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF4CAF50),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text(
+                    'All Recipes',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildTabButton(
-                        label: 'AI Generated',
-                        isSelected: _selectedTabIndex == 1,
-                        onTap: () => setState(() => _selectedTabIndex = 1),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ],
@@ -1202,48 +1200,20 @@ class _RecipesListScreenState extends State<RecipesListScreen>
     );
   }
 
-  Widget _buildTabButton({
-    required String label,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF4CAF50) : Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.black87,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildTabContent(double horizontalPadding) {
     if (_searchQuery.isNotEmpty) {
       return _buildSearchResults(horizontalPadding);
     }
 
-    switch (_selectedTabIndex) {
-      case 0:
-        return _buildAllRecipes(horizontalPadding);
-      case 1:
-        return _buildAIRecipes(horizontalPadding);
-      default:
-        return _buildAllRecipes(horizontalPadding);
-    }
+    // Always show all recipes (both regular and AI generated)
+    return _buildAllRecipes(horizontalPadding);
   }
 
   Widget _buildAllRecipes(double horizontalPadding) {
-    if (_recipes.isEmpty) {
+    // Combine regular recipes and AI recipes
+    final allRecipes = [..._recipes, ..._aiRecipes];
+
+    if (allRecipes.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1273,54 +1243,10 @@ class _RecipesListScreenState extends State<RecipesListScreen>
           horizontal: horizontalPadding,
           vertical: 16,
         ),
-        itemCount: _recipes.length,
+        itemCount: allRecipes.length,
         separatorBuilder: (_, __) => const SizedBox(height: 16),
         itemBuilder: (context, index) {
-          final recipe = _recipes[index];
-          return GestureDetector(
-            onTap: () => _navigateToRecipeDetail(recipe),
-            child: RecipeCard(recipe: recipe),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildAIRecipes(double horizontalPadding) {
-    if (_aiRecipes.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.auto_awesome, size: 64, color: Colors.grey.shade400),
-            const SizedBox(height: 16),
-            Text(
-              'No AI recipes yet',
-              style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Generate your first AI recipe using the button above!',
-              style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: _loadData,
-      child: ListView.separated(
-        controller: _scrollController,
-        padding: EdgeInsets.symmetric(
-          horizontal: horizontalPadding,
-          vertical: 16,
-        ),
-        itemCount: _aiRecipes.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 16),
-        itemBuilder: (context, index) {
-          final recipe = _aiRecipes[index];
+          final recipe = allRecipes[index];
           return GestureDetector(
             onTap: () => _navigateToRecipeDetail(recipe),
             child: RecipeCard(recipe: recipe),
