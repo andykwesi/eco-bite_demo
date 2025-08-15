@@ -21,11 +21,17 @@ class _RecipeGenerationDialogState extends State<RecipeGenerationDialog> {
   List<String> cuisineTypes = [];
   List<String> dietaryRestrictions = [];
   final FirestoreService _firestoreService = FirestoreService();
+  
+  // New state for ingredient selection
+  List<Ingredient> selectedIngredients = [];
+  bool showIngredientSelection = false;
 
   @override
   void initState() {
     super.initState();
     _loadOptions();
+    // Initialize with all available ingredients selected
+    selectedIngredients = List.from(widget.availableIngredients.where((i) => i.isOwned));
   }
 
   Future<void> _loadOptions() async {
@@ -40,8 +46,46 @@ class _RecipeGenerationDialogState extends State<RecipeGenerationDialog> {
     });
   }
 
+  void _toggleIngredientSelectionPanel() {
+    setState(() {
+      showIngredientSelection = !showIngredientSelection;
+    });
+  }
+
+  void _toggleIngredientSelection(Ingredient ingredient) {
+    setState(() {
+      if (selectedIngredients.contains(ingredient)) {
+        selectedIngredients.remove(ingredient);
+      } else {
+        selectedIngredients.add(ingredient);
+      }
+    });
+  }
+
+  void _selectAllIngredients() {
+    setState(() {
+      selectedIngredients = List.from(widget.availableIngredients.where((i) => i.isOwned));
+    });
+  }
+
+  void _deselectAllIngredients() {
+    setState(() {
+      selectedIngredients.clear();
+    });
+  }
+
   Future<void> _generateRecipe() async {
     if (selectedCuisineType == null || selectedDietaryRestriction == null) {
+      return;
+    }
+
+    if (selectedIngredients.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select at least one ingredient to generate a recipe.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
       return;
     }
 
@@ -71,9 +115,9 @@ class _RecipeGenerationDialogState extends State<RecipeGenerationDialog> {
     });
 
     try {
-      // Use the new pantry-focused generation method
+      // Use the selected ingredients instead of all available ingredients
       final recipe = await AIService.generateRecipeFromPantry(
-        pantryIngredients: widget.availableIngredients,
+        pantryIngredients: selectedIngredients,
         cuisineType: selectedCuisineType,
         dietaryRestriction: selectedDietaryRestriction,
         servings: servings,
@@ -100,7 +144,7 @@ class _RecipeGenerationDialogState extends State<RecipeGenerationDialog> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
-                'No suitable recipes could be generated. Try adjusting your preferences or adding more ingredients to your pantry.',
+                'No suitable recipes could be generated. Try adjusting your preferences or selecting different ingredients.',
               ),
               backgroundColor: Colors.orange,
             ),
@@ -346,7 +390,7 @@ class _RecipeGenerationDialogState extends State<RecipeGenerationDialog> {
             ),
             const SizedBox(height: 32),
 
-            // Available Ingredients Info
+            // Available Ingredients Selection
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -360,29 +404,168 @@ class _RecipeGenerationDialogState extends State<RecipeGenerationDialog> {
                   Row(
                     children: [
                       Icon(
-                        Icons.info_outline,
+                        Icons.shopping_basket,
                         color: Colors.blue.shade700,
                         size: 20,
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Available Ingredients',
+                        'Select Pantry Ingredients',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                           color: Colors.blue.shade700,
                         ),
                       ),
+                      const Spacer(),
+                      IconButton(
+                        onPressed: _toggleIngredientSelectionPanel,
+                        icon: Icon(
+                          showIngredientSelection ? Icons.expand_less : Icons.expand_more,
+                          color: Colors.blue.shade700,
+                          size: 20,
+                        ),
+                        tooltip: showIngredientSelection ? 'Hide ingredients' : 'Show ingredients',
+                      ),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    '${widget.availableIngredients.where((i) => i.isOwned).length} ingredients available',
-                    style: TextStyle(fontSize: 12, color: Colors.blue.shade600),
+                  Row(
+                    children: [
+                      Text(
+                        '${selectedIngredients.length} of ${widget.availableIngredients.where((i) => i.isOwned).length} ingredients selected',
+                        style: TextStyle(fontSize: 12, color: Colors.blue.shade600),
+                      ),
+                      const Spacer(),
+                      TextButton(
+                        onPressed: _selectAllIngredients,
+                        child: Text(
+                          'Select All',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.blue.shade700,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: _deselectAllIngredients,
+                        child: Text(
+                          'Clear All',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.blue.shade700,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
+                  if (showIngredientSelection) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      constraints: const BoxConstraints(maxHeight: 200),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: widget.availableIngredients
+                              .where((ingredient) => ingredient.isOwned)
+                              .map((ingredient) {
+                            final isSelected = selectedIngredients.contains(ingredient);
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () => _toggleIngredientSelection(ingredient),
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? Colors.blue.shade100
+                                          : Colors.white,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: isSelected
+                                            ? Colors.blue.shade300
+                                            : Colors.grey.shade300,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          isSelected
+                                              ? Icons.check_circle
+                                              : Icons.radio_button_unchecked,
+                                          color: isSelected
+                                              ? Colors.blue.shade700
+                                              : Colors.grey.shade600,
+                                          size: 20,
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                ingredient.name,
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: isSelected
+                                                      ? Colors.blue.shade900
+                                                      : Colors.grey.shade800,
+                                                ),
+                                              ),
+                                              if (ingredient.quantity != null && ingredient.unit != null)
+                                                Text(
+                                                  '${ingredient.quantity} ${ingredient.unit}',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: isSelected
+                                                        ? Colors.blue.shade600
+                                                        : Colors.grey.shade600,
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                        ),
+                                        if (ingredient.isExpired)
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 6,
+                                              vertical: 2,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.red.shade100,
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              'Expired',
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                color: Colors.red.shade700,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 8),
                   Text(
-                    'Recipe will prioritize using your pantry ingredients',
+                    'Recipe will prioritize using your selected ingredients',
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.blue.shade600,

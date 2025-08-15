@@ -498,11 +498,7 @@ class _RecipesListScreenState extends State<RecipesListScreen>
           fontSize: 14,
           fontWeight: FontWeight.w500,
         ),
-        tabs: const [
-          Tab(text: 'All Recipes'),
-          Tab(text: 'AI Generated'),
-          Tab(text: 'Regular'),
-        ],
+        tabs: const [Tab(text: 'All Recipes'), Tab(text: 'AI Generated')],
       ),
     );
   }
