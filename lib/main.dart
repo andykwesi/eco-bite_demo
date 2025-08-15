@@ -16,6 +16,16 @@ void main() async {
     try {
       await dotenv.load(fileName: ".env");
       print('Environment variables loaded successfully');
+
+      // Debug: Check if API key is loaded
+      final apiKey = dotenv.env['OPENAI_API_KEY'];
+      print('DEBUG: API key loaded: ${apiKey != null ? 'Yes' : 'No'}');
+      if (apiKey != null) {
+        print('DEBUG: API key length: ${apiKey.length}');
+        print(
+          'DEBUG: API key starts with: ${apiKey.substring(0, apiKey.length > 20 ? 20 : apiKey.length)}',
+        );
+      }
     } catch (e) {
       print(
         'Warning: .env file not found. Some features may not work without proper configuration.',

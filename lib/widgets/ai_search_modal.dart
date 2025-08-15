@@ -150,12 +150,18 @@ class _AISearchModalState extends State<AISearchModal> {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 400),
+        constraints: BoxConstraints(
+          maxWidth: 400,
+          maxHeight:
+              MediaQuery.of(context).size.height *
+              0.9, // Limit height to 90% of screen
+        ),
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Header - Fixed at top
             Row(
               children: [
                 Container(
@@ -193,302 +199,315 @@ class _AISearchModalState extends State<AISearchModal> {
             ),
             const SizedBox(height: 24),
 
-            // Search Input
-            const Text(
-              'What would you like to cook?',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF222222),
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _searchController,
-              decoration: const InputDecoration(
-                hintText: 'e.g., pasta with chicken, vegetarian curry...',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.search),
-              ),
-              maxLines: 2,
-              textInputAction: TextInputAction.search,
-              onSubmitted: (_) => _generateRecipe(),
-            ),
-            const SizedBox(height: 20),
-
-            // Cuisine Type
-            const Text(
-              'Cuisine Type',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF222222),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: selectedCuisineType,
-                  isExpanded: true,
-                  hint: const Text('Select cuisine type'),
-                  items:
-                      cuisineTypes.map((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
-                        );
-                      }).toList(),
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      selectedCuisineType = newValue;
-                    });
-                  },
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Dietary Restrictions
-            const Text(
-              'Dietary Restrictions',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF222222),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: selectedDietaryRestriction,
-                  isExpanded: true,
-                  hint: const Text('Select dietary restriction'),
-                  items:
-                      dietaryRestrictions.map((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
-                        );
-                      }).toList(),
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      selectedDietaryRestriction = newValue;
-                    });
-                  },
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Servings
-            const Text(
-              'Servings',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF222222),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: Slider(
-                    value: servings.toDouble(),
-                    min: 1,
-                    max: 8,
-                    divisions: 7,
-                    activeColor: const Color(0xFF4CAF50),
-                    onChanged: (value) {
-                      setState(() {
-                        servings = value.round();
-                      });
-                    },
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF4CAF50),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    '$servings',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+            // Scrollable content
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Search Input
+                    const Text(
+                      'What would you like to cook?',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF222222),
+                      ),
                     ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-
-            // Max Cooking Time
-            const Text(
-              'Maximum Cooking Time',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF222222),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: Slider(
-                    value: maxCookingTime.toDouble(),
-                    min: 15,
-                    max: 120,
-                    divisions: 7,
-                    activeColor: const Color(0xFF4CAF50),
-                    onChanged: (value) {
-                      setState(() {
-                        maxCookingTime = value.round();
-                      });
-                    },
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF4CAF50),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    '${maxCookingTime}min',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _searchController,
+                      decoration: const InputDecoration(
+                        hintText:
+                            'e.g., pasta with chicken, vegetarian curry...',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.search),
+                      ),
+                      maxLines: 2,
+                      textInputAction: TextInputAction.search,
+                      onSubmitted: (_) => _generateRecipe(),
                     ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
+                    const SizedBox(height: 20),
 
-            // Configuration Status
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color:
-                    AIService.isConfigured
-                        ? Colors.green.shade50
-                        : Colors.orange.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color:
-                      AIService.isConfigured
-                          ? Colors.green.shade200
-                          : Colors.orange.shade200,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        AIService.isConfigured
-                            ? Icons.check_circle
-                            : Icons.warning,
+                    // Cuisine Type
+                    const Text(
+                      'Cuisine Type',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF222222),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: selectedCuisineType,
+                          isExpanded: true,
+                          hint: const Text('Select cuisine type'),
+                          items:
+                              cuisineTypes.map((String value) {
+                                return DropdownMenuItem<String>(
+                                  value: value,
+                                  child: Text(value),
+                                );
+                              }).toList(),
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              selectedCuisineType = newValue;
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Dietary Restrictions
+                    const Text(
+                      'Dietary Restrictions',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF222222),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: selectedDietaryRestriction,
+                          isExpanded: true,
+                          hint: const Text('Select dietary restriction'),
+                          items:
+                              dietaryRestrictions.map((String value) {
+                                return DropdownMenuItem<String>(
+                                  value: value,
+                                  child: Text(value),
+                                );
+                              }).toList(),
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              selectedDietaryRestriction = newValue;
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Servings
+                    const Text(
+                      'Servings',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF222222),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Slider(
+                            value: servings.toDouble(),
+                            min: 1,
+                            max: 8,
+                            divisions: 7,
+                            activeColor: const Color(0xFF4CAF50),
+                            onChanged: (value) {
+                              setState(() {
+                                servings = value.round();
+                              });
+                            },
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF4CAF50),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '$servings',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Max Cooking Time
+                    const Text(
+                      'Maximum Cooking Time',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF222222),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Slider(
+                            value: maxCookingTime.toDouble(),
+                            min: 15,
+                            max: 120,
+                            divisions: 7,
+                            activeColor: const Color(0xFF4CAF50),
+                            onChanged: (value) {
+                              setState(() {
+                                maxCookingTime = value.round();
+                              });
+                            },
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF4CAF50),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '${maxCookingTime}min',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Configuration Status
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
                         color:
                             AIService.isConfigured
-                                ? Colors.green.shade700
-                                : Colors.orange.shade700,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        AIService.isConfigured
-                            ? 'AI Service Ready'
-                            : 'AI Service Not Configured',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                                ? Colors.green.shade50
+                                : Colors.orange.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
                           color:
                               AIService.isConfigured
-                                  ? Colors.green.shade700
-                                  : Colors.orange.shade700,
+                                  ? Colors.green.shade200
+                                  : Colors.orange.shade200,
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    AIService.getConfigurationStatus(),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color:
-                          AIService.isConfigured
-                              ? Colors.green.shade600
-                              : Colors.orange.shade600,
-                    ),
-                  ),
-                  if (!AIService.isConfigured) ...[
-                    const SizedBox(height: 8),
-                    GestureDetector(
-                      onTap: () {
-                        showDialog(
-                          context: context,
-                          builder:
-                              (context) => AlertDialog(
-                                title: const Text('Setup Instructions'),
-                                content: SingleChildScrollView(
-                                  child: Text(
-                                    AIService.getConfigurationInstructions(),
-                                  ),
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed:
-                                        () => Navigator.of(context).pop(),
-                                    child: const Text('OK'),
-                                  ),
-                                ],
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                AIService.isConfigured
+                                    ? Icons.check_circle
+                                    : Icons.warning,
+                                color:
+                                    AIService.isConfigured
+                                        ? Colors.green.shade700
+                                        : Colors.orange.shade700,
+                                size: 20,
                               ),
-                        );
-                      },
-                      child: Text(
-                        'Tap here for setup instructions',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.orange.shade600,
-                          fontStyle: FontStyle.italic,
-                          decoration: TextDecoration.underline,
-                        ),
+                              const SizedBox(width: 8),
+                              Text(
+                                AIService.isConfigured
+                                    ? 'AI Service Ready'
+                                    : 'AI Service Not Configured',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color:
+                                      AIService.isConfigured
+                                          ? Colors.green.shade700
+                                          : Colors.orange.shade700,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            AIService.getConfigurationStatus(),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color:
+                                  AIService.isConfigured
+                                      ? Colors.green.shade600
+                                      : Colors.orange.shade600,
+                            ),
+                          ),
+                          if (!AIService.isConfigured) ...[
+                            const SizedBox(height: 8),
+                            GestureDetector(
+                              onTap: () {
+                                showDialog(
+                                  context: context,
+                                  builder:
+                                      (context) => AlertDialog(
+                                        title: const Text('Setup Instructions'),
+                                        content: SingleChildScrollView(
+                                          child: Text(
+                                            AIService.getConfigurationInstructions(),
+                                          ),
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed:
+                                                () =>
+                                                    Navigator.of(context).pop(),
+                                            child: const Text('OK'),
+                                          ),
+                                        ],
+                                      ),
+                                );
+                              },
+                              child: Text(
+                                'Tap here for setup instructions',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.orange.shade600,
+                                  fontStyle: FontStyle.italic,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
+                    const SizedBox(height: 24),
                   ],
-                ],
+                ),
               ),
             ),
-            const SizedBox(height: 24),
 
-            // Generate Button
+            // Generate Button - Fixed at bottom
+            const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               height: 56,
@@ -519,16 +538,25 @@ class _AISearchModalState extends State<AISearchModal> {
                           ),
                         )
                         : !AIService.isConfigured
-                        ? const Row(
+                        ? Row(
                           mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.lock, size: 20),
-                            SizedBox(width: 8),
-                            Text('Configure AI Service First'),
+                            const Icon(Icons.lock, size: 20),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                'Configure AI Service First',
+                                style: const TextStyle(fontSize: 16),
+                                textAlign: TextAlign.center,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
                           ],
                         )
                         : const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.auto_awesome, size: 20),
                             SizedBox(width: 8),

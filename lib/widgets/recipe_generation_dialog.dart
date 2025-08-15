@@ -526,16 +526,25 @@ class _RecipeGenerationDialogState extends State<RecipeGenerationDialog> {
                           ),
                         )
                         : !AIService.isConfigured
-                        ? const Row(
+                        ? Row(
                           mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.lock, size: 20),
-                            SizedBox(width: 8),
-                            Text('Configure AI Service First'),
+                            const Icon(Icons.lock, size: 20),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                'Configure AI Service First',
+                                style: const TextStyle(fontSize: 16),
+                                textAlign: TextAlign.center,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
                           ],
                         )
                         : const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.auto_awesome, size: 20),
                             SizedBox(width: 8),

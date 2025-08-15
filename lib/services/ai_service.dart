@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/recipe.dart';
@@ -8,10 +9,27 @@ class AIService {
   static bool get isConfigured {
     try {
       final apiKey = dotenv.env['OPENAI_API_KEY'];
-      return apiKey != null &&
+      print('DEBUG: Checking API key configuration...');
+      print('DEBUG: API key found: ${apiKey != null ? 'Yes' : 'No'}');
+      if (apiKey != null) {
+        print('DEBUG: API key length: ${apiKey.length}');
+        print(
+          'DEBUG: API key starts with: ${apiKey.substring(0, min(20, apiKey.length))}',
+        );
+        print(
+          'DEBUG: API key is placeholder: ${apiKey == 'placeholder_api_key_for_development'}',
+        );
+      }
+
+      final isConfigured =
+          apiKey != null &&
           apiKey.isNotEmpty &&
           apiKey != 'placeholder_api_key_for_development';
+
+      print('DEBUG: AIService isConfigured: $isConfigured');
+      return isConfigured;
     } catch (e) {
+      print('DEBUG: Error checking API key configuration: $e');
       return false;
     }
   }
